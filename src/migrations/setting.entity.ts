@@ -15,10 +15,10 @@ export class Setting extends BaseEntity {
   public id!: Number;
 
   @Column({ type: 'varchar' })
-  public key!: string;
+  public key!: any;
 
   @Column({ type: 'varchar' })
-  public value!: String;
+  public value!: any;
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

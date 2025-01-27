@@ -3,34 +3,43 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
-import { META_CONFIG } from '@/constants/meta';
+import { MetaConfig } from '@/constants/meta';
 
 @Injectable()
 export class AuthService {
-  @InjectRepository(Setting)
-  private readonly settingRepository: Repository<Setting>;
-
+  constructor(
+    private readonly metaConfig: MetaConfig,
+    @InjectRepository(Setting)
+    private readonly settingRepository: Repository<Setting>
+  ) {}
   async getLongLivedToken(shortLivedToken: string): Promise<string> {
     try {
-      const url = `${META_CONFIG.BASE_URL}/oauth/access_token`;
-      console.log(META_CONFIG.APP_ID, META_CONFIG.APP_SECRET);
+      const url = `${this.metaConfig.META_BASE_URL}/oauth/access_token`;
 
       const response = await axios.get(url, {
         params: {
           grant_type: 'fb_exchange_token',
-          client_id: META_CONFIG.APP_ID,
-          client_secret: META_CONFIG.APP_SECRET,
+          client_id: this.metaConfig.META_APP_ID,
+          client_secret: this.metaConfig.META_APP_SECRET,
           fb_exchange_token: shortLivedToken
         }
       });
 
       const longLivedToken = response.data;
-
-      const newSetting = new Setting();
-      newSetting.key = 'access_token';
-      newSetting.value = response.data.access_token;
-      await this.settingRepository.save(newSetting);
-
+      const checkToken = await this.settingRepository.findOne({
+        where: {
+          key: 'access_token'
+        }
+      });
+      if (!checkToken) {
+        const newSetting = new Setting();
+        newSetting.key = 'access_token';
+        newSetting.value = response.data.access_token;
+        await this.settingRepository.save(newSetting);
+      } else {
+        checkToken.value = response.data.access_token;
+        await this.settingRepository.save(checkToken);
+      }
       return longLivedToken;
     } catch (error) {
       console.error(
@@ -59,7 +68,8 @@ export class AuthService {
   }
 
   async getAdAccounts(): Promise<any> {
-    const url = `${META_CONFIG.BASE_URL}/v21.0/me/adaccounts?fields=name`;
+    // const url = `${META_CONFIG.BASE_URL}/v21.0/me/adaccounts?fields=name`;
+    const url = `${this.metaConfig.META_BASE_URL}/v21.0/me/adaccounts?fields=name`;
     try {
       const accessToken = await this.getToken();
       const response = await axios.get(url, {
