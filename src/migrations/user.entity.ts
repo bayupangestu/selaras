@@ -1,5 +1,13 @@
 import { Exclude } from 'class-transformer';
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+import {
+  BaseEntity,
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn
+} from 'typeorm';
 
 @Entity()
 export class User extends BaseEntity {
@@ -8,11 +16,11 @@ export class User extends BaseEntity {
 
   @Column({ type: 'varchar' })
   public email!: string;
-  
+
   @Exclude()
   @Column({ type: 'varchar' })
   public password!: string;
-  
+
   @Column({ type: 'varchar', nullable: true })
   public name: string | null;
 
@@ -27,5 +35,4 @@ export class User extends BaseEntity {
 
   @DeleteDateColumn({ type: 'timestamp', nullable: true })
   public deleted_at: Date | null;
-
 }
