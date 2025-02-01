@@ -190,8 +190,6 @@ export class AdsService {
         spend
       };
     } catch (error) {
-      console.log(error.response.data.error, '<<<<<');
-
       console.error(
         'Error fetching video insights from Meta API:',
         error.message
@@ -213,7 +211,6 @@ export class AdsService {
       const insights = response.data.data;
 
       if (!insights || insights.length === 0) {
-        console.log('No data found for the specified date range.');
         return [];
       }
 

@@ -8,7 +8,7 @@ export class MetaConfig {
   get META_BASE_URL(): string {
     return (
       this.settingsService.getValue('META_BASE_URL') ||
-      'https://graph.facebook.com/v21.0'
+      'https://graph.facebook.com/v22.0'
     );
   }
 

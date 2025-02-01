@@ -51,10 +51,8 @@ export class AccountService {
             data
           );
           await this.accountInsightsRepository.save(updatedRecord);
-          console.log('masuk 3');
         }
       }
-      console.log('masuk akhir');
 
       return 'Insights processed and saved successfully!';
     } catch (error) {
