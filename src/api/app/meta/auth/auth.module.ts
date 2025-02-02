@@ -5,7 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Setting } from '@/migrations/setting.entity';
 import { HttpModule } from '@nestjs/axios';
 import { MetaConfig } from '@/constants/meta';
-import { SettingService } from '@/api/setting/setting.service';
+import { SettingService } from '@/api/cms/setting/setting.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Setting])],

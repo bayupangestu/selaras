@@ -6,7 +6,7 @@ import { Ad } from '@/migrations/ad.entity';
 import { AdSet } from '@/migrations/ad-set.entity';
 import { Campaign } from '@/migrations/campaign.entity';
 import { Insight } from '@/migrations/insight.entity';
-import { SettingService } from '@/api/setting/setting.service';
+import { SettingService } from '@/api/cms/setting/setting.service';
 import { Setting } from '@/migrations/setting.entity';
 import { AdAccount } from '@/migrations/ad-account.entity';
 

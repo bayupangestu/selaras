@@ -14,11 +14,16 @@ import {
 import { AdSet } from './ad-set.entity';
 import { AdCreative } from './ad-creative.entity';
 import { Insight } from './insight.entity';
+import { User } from './user.entity';
 
 @Entity('ads')
 export class Ad extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: number;
+
+  @ManyToOne(() => User, (user) => user.ad)
+  @JoinColumn({ name: 'user_id' })
+  user_id: User;
 
   @Column()
   name: string;
@@ -45,7 +50,7 @@ export class Ad extends BaseEntity {
   bid_amount: number;
 
   @Column({ nullable: true })
-  ad_set_id: string;
+  adset_id: string;
 
   @ManyToOne(() => AdSet, (adSet) => adSet.ads)
   @JoinColumn({ name: 'ad_set_id' })

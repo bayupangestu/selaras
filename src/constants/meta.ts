@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SettingService } from '@/api/setting/setting.service';
+import { SettingService } from '@/api/cms/setting/setting.service';
 
 @Injectable()
 export class MetaConfig {

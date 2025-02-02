@@ -5,7 +5,9 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn
+  DeleteDateColumn,
+  ManyToOne,
+  JoinColumn
 } from 'typeorm';
 import { Campaign } from './campaign.entity';
 import { CustomAudience } from './custom-audience.entity';
@@ -13,11 +15,16 @@ import { AudienceNetworkAnalytics } from './audience-network-analytics.entity';
 import { AssignedUser } from './assigned-user.entity';
 import { Insight } from './insight.entity';
 import { Exclude } from 'class-transformer';
+import { User } from './user.entity';
 
 @Entity('ad_accounts')
 export class AdAccount {
   @PrimaryGeneratedColumn('uuid')
   id: number;
+
+  @ManyToOne(() => User, (user) => user.adaccount)
+  @JoinColumn({ name: 'user_id' })
+  user_id: User;
 
   @Column()
   name: string;

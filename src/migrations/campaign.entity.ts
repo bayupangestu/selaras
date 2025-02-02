@@ -14,6 +14,7 @@ import {
 import { AdAccount } from './ad-account.entity';
 import { AdSet } from './ad-set.entity';
 import { Insight } from './insight.entity';
+import { User } from './user.entity';
 
 @Entity('campaigns')
 export class Campaign extends BaseEntity {
@@ -29,6 +30,10 @@ export class Campaign extends BaseEntity {
   @ManyToOne(() => AdAccount, (adAccount) => adAccount.campaigns)
   @JoinColumn({ name: 'ad_account_id' })
   ad_account: AdAccount;
+
+  @ManyToOne(() => User, (user) => user.campaign)
+  @JoinColumn({ name: 'user_id' })
+  user_id: User;
 
   @OneToMany(() => AdSet, (adSet) => adSet.campaign)
   adSets: AdSet[];

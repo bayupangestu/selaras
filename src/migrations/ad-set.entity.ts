@@ -14,6 +14,7 @@ import {
 import { Campaign } from './campaign.entity';
 import { Ad } from './ad.entity';
 import { Insight } from './insight.entity';
+import { User } from './user.entity';
 
 @Entity('ad_sets')
 export class AdSet extends BaseEntity {
@@ -26,6 +27,10 @@ export class AdSet extends BaseEntity {
   @Column()
   name: string; // Nama (tidak boleh null)
 
+  @ManyToOne(() => User, (user) => user.adSet)
+  @JoinColumn({ name: 'user_id' })
+  user_id: User;
+
   @Column({ nullable: true })
   account_id: string;
 
@@ -36,7 +41,7 @@ export class AdSet extends BaseEntity {
   configured_status: string;
 
   @Column({ nullable: true })
-  campaign_id: string;
+  campaign_meta_id: string;
 
   @ManyToOne(() => Campaign, (campaign) => campaign.adSets)
   @JoinColumn({ name: 'campaign_id' })

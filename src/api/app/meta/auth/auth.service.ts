@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import { MetaConfig } from '@/constants/meta';
 import { FB } from 'fb';
-import { SettingService } from '@/api/setting/setting.service';
+import { SettingService } from '@/api/cms/setting/setting.service';
 
 @Injectable()
 export class AuthService {

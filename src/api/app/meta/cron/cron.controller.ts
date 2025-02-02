@@ -35,4 +35,10 @@ export class CronController {
   private async getAdList() {
     return await this.cronService.getAdList();
   }
+
+  @Get('insight')
+  @UseInterceptors(ClassSerializerInterceptor)
+  private async getInsight() {
+    return await this.cronService.getInsights();
+  }
 }

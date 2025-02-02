@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { AuthHelper } from './auth.helper';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './auth.strategy';
+import { Role } from '@/migrations/role.entity';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { JwtStrategy } from './auth.strategy';
         signOptions: { expiresIn: process.env.JWT_EXPIRES_IN }
       })
     }),
-    TypeOrmModule.forFeature([User])
+    TypeOrmModule.forFeature([User, Role])
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthHelper, JwtStrategy]
