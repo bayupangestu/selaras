@@ -7,7 +7,7 @@ export class AdsService {
     const url = `${process.env.META_BASE_URL}/${process.env.ACT_ID}/insights`;
     const params = {
       fields: 'reach,impressions,ctr,engagement_rate_ranking,spend,actions,cpc',
-      time_range: { since: '2024-04-01', until: '2024-06-30' },
+      date_preset: 'maximum',
       access_token: process.env.ACCESS_TOKEN
     };
 
@@ -61,7 +61,7 @@ export class AdsService {
     const url = `${process.env.META_BASE_URL}/${process.env.ACT_ID}/insights`;
     const params = {
       fields: 'reach,impressions,ctr,frequency,spend,actions',
-      time_range: { since: '2024-04-01', until: '2024-06-30' },
+      date_preset: 'maximum',
       access_token: process.env.ACCESS_TOKEN
     };
 
@@ -123,14 +123,13 @@ export class AdsService {
     const params = {
       fields:
         'impressions,spend,video_30_sec_watched_actions,video_avg_time_watched_actions,video_p100_watched_actions,video_play_actions,actions,canvas_avg_view_time,video_play_retention_0_to_15s_actions',
-      time_range: { since: '2024-04-01', until: '2024-06-30' },
+      date_preset: 'maximum',
       access_token: process.env.ACCESS_TOKEN
     };
 
     try {
       const response = await axios.get(url, { params });
       const data = response.data?.data[0]; // Ambil data pertama
-      return data;
 
       if (!data) {
         throw new Error('No data found in the API response');
@@ -202,7 +201,7 @@ export class AdsService {
     const url = `${process.env.META_BASE_URL}/${process.env.ACT_ID}/insights`;
     const params = {
       fields: 'clicks,actions,ctr,spend,cpc',
-      time_range: { since: '2024-01-01', until: '2025-01-21' }, // Ganti dengan rentang waktu Anda
+      date_preset: 'maximum',
       access_token: process.env.ACCESS_TOKEN
     };
 
@@ -264,7 +263,7 @@ export class AdsService {
       const params = {
         fields:
           'reach,impressions,ctr,engagement_rate_ranking,spend,actions,cpc',
-        time_range: { since: dateString, until: dateString },
+        date_preset: 'maximum',
         access_token: process.env.ACCESS_TOKEN
       };
 
@@ -330,7 +329,7 @@ export class AdsService {
     const url = `${process.env.META_BASE_URL}/${campaignId}/insights`;
     const params = {
       fields: 'reach,impressions,ctr,engagement_rate_ranking,spend,actions,cpc',
-      time_range: { since: '2024-04-01', until: '2024-06-30' },
+      date_preset: 'maximum',
       access_token: process.env.ACCESS_TOKEN
     };
 
@@ -395,7 +394,7 @@ export class AdsService {
     const url = `${process.env.META_BASE_URL}/${adSetId}/insights`;
     const params = {
       fields: 'reach,impressions,ctr,engagement_rate_ranking,spend,actions,cpc',
-      time_range: { since: '2024-04-01', until: '2024-06-30' },
+      date_preset: 'maximum',
       access_token: process.env.ACCESS_TOKEN
     };
 
@@ -459,7 +458,7 @@ export class AdsService {
     const url = `${process.env.META_BASE_URL}/${adId}/insights`;
     const params = {
       fields: 'reach,impressions,ctr,engagement_rate_ranking,spend,actions,cpc',
-      time_range: { since: '2024-04-01', until: '2024-06-30' },
+      date_preset: 'maximum',
       access_token: process.env.ACCESS_TOKEN
     };
 

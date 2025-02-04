@@ -5,6 +5,8 @@ import { AdsManagerModule } from './ads-manager/ads-manager.module';
 import { AuthModule } from './auth/auth.module';
 import { CampaignModule } from './campaign/campaign.module';
 import { CronModule } from './cron/cron.module';
+import { AdsetsModule } from './adsets/adsets.module';
+import { AdModule } from './ad/ad.module';
 
 @Module({
   imports: [
@@ -13,7 +15,9 @@ import { CronModule } from './cron/cron.module';
     AdsManagerModule,
     AuthModule,
     CampaignModule,
-    CronModule
+    CronModule,
+    AdsetsModule,
+    AdModule
   ]
 })
 export class MetaModule {}

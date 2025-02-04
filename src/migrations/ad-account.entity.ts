@@ -182,9 +182,6 @@ export class AdAccount {
   @OneToMany(() => Campaign, (campaign) => campaign.ad_account)
   campaigns: Campaign[];
 
-  @OneToMany(() => CustomAudience, (audience) => audience.adAccount)
-  customAudiences: CustomAudience[];
-
   @OneToMany(() => AudienceNetworkAnalytics, (analytics) => analytics.adAccount)
   analytics: AudienceNetworkAnalytics[];
 
@@ -193,6 +190,12 @@ export class AdAccount {
 
   @OneToMany(() => Insight, (insight) => insight.referenceId)
   insights: Insight[];
+
+  @OneToMany(
+    () => CustomAudience,
+    (custom_audiance) => custom_audiance.ad_account_id
+  )
+  custom_audiances: CustomAudience[];
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

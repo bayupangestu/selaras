@@ -41,4 +41,10 @@ export class CronController {
   private async getInsight() {
     return await this.cronService.getInsights();
   }
+
+  @Get('custom-audience')
+  @UseInterceptors(ClassSerializerInterceptor)
+  private async getAudience() {
+    return await this.cronService.getCustomAudienceList();
+  }
 }

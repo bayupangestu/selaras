@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { AdsService } from './ads.service';
 
-@Controller('app/ads')
+@Controller('app/dashboard')
 export class AdsController {
   @Inject(AdsService)
   private readonly adsService: AdsService;

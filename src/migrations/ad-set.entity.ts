@@ -206,7 +206,7 @@ export class AdSet extends BaseEntity {
   @Column({ nullable: true })
   created_time: string;
 
-  @OneToMany(() => Ad, (ad) => ad.adSet)
+  @OneToMany(() => Ad, (ad) => ad.ad_set_id)
   ads: Ad[];
 
   @OneToMany(() => Insight, (insight) => insight.referenceId)

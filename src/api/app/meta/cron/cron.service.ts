@@ -3,6 +3,7 @@ import { AdAccount } from '@/migrations/ad-account.entity';
 import { AdSet } from '@/migrations/ad-set.entity';
 import { Ad } from '@/migrations/ad.entity';
 import { Campaign } from '@/migrations/campaign.entity';
+import { CustomAudience } from '@/migrations/custom-audience.entity';
 import { Insight } from '@/migrations/insight.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -30,7 +31,10 @@ export class CronService {
     private readonly adRepository: Repository<Ad>,
 
     @InjectRepository(Insight)
-    private readonly insightRepository: Repository<Insight>
+    private readonly insightRepository: Repository<Insight>,
+
+    @InjectRepository(CustomAudience)
+    private readonly customAudienceRepository: Repository<CustomAudience>
   ) {}
 
   private async initializeFB(): Promise<FB> {
@@ -464,7 +468,7 @@ export class CronService {
         for (const adData of allAds) {
           const existingAd = await this.adRepository.findOne({
             where: { ad_meta_id: adData.id },
-            relations: { adSet: true }
+            relations: { ad_set_id: true }
           });
 
           adData.ad_meta_id = adData.id;
@@ -515,484 +519,6 @@ export class CronService {
 
     return result;
   }
-
-  // async getInsights() {
-  //   const accountData = await this.adAccountRepository.find({
-  //     select: ['name', 'account_id', 'business_name']
-  //   });
-
-  //   if (accountData.length < 1) {
-  //     return {
-  //       statusCode: HttpStatus.OK,
-  //       message: 'Tidak Ada Data Yang Diproses'
-  //     };
-  //   }
-
-  //   const fb = await this.initializeFB();
-  //   const result = [];
-
-  //   // Break down fields into smaller chunks for better performance
-  //   const fieldChunks = [
-  //     // Core metrics chunk
-  //     [
-  //       'reach',
-  //       'impressions',
-  //       'clicks',
-  //       'spend',
-  //       'ctr',
-  //       'cpc',
-  //       'cpm',
-  //       'date_start',
-  //       'date_stop'
-  //     ],
-
-  //     // Video metrics chunk
-  //     [
-  //       'video_30_sec_watched_actions',
-  //       'video_avg_time_watched_actions',
-  //       'video_play_actions',
-  //       'video_p25_watched_actions',
-  //       'video_p50_watched_actions',
-  //       'video_p75_watched_actions',
-  //       'video_p95_watched_actions',
-  //       'video_p100_watched_actions'
-  //     ],
-
-  //     // Cost metrics chunk
-  //     [
-  //       'cost_per_outbound_click',
-  //       'cost_per_thruplay',
-  //       'cost_per_unique_action_type',
-  //       'cost_per_unique_click',
-  //       'cost_per_unique_inline_link_click',
-  //       'cost_per_unique_outbound_click',
-  //       'cost_per_action_type',
-  //       'cost_per_conversion',
-  //       'cost_per_inline_post_engagement'
-  //     ],
-
-  //     // Engagement metrics chunk
-  //     [
-  //       'engagement_rate_ranking',
-  //       'estimated_ad_recall_rate',
-  //       'estimated_ad_recallers',
-  //       'inline_link_click_ctr',
-  //       'inline_link_clicks',
-  //       'inline_post_engagement'
-  //     ],
-
-  //     // Additional metrics chunk
-  //     [
-  //       'website_ctr',
-  //       'website_purchase_roas',
-  //       'purchase_roas',
-  //       'quality_ranking',
-  //       'place_page_name',
-  //       'marketing_messages_delivery_rate'
-  //     ]
-  //   ];
-
-  //   const getDateRanges = () => {
-  //     const ranges = [];
-  //     const startDate = new Date('2024-10-01'); // Tanggal mulai: 1 Oktober 2024
-  //     const endDate = new Date('2024-11-30'); // Tanggal berakhir: 30 November 2024
-
-  //     let currentDate = new Date(startDate);
-  //     while (currentDate <= endDate) {
-  //       const dateStr = currentDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-  //       ranges.push({
-  //         since: dateStr,
-  //         until: dateStr
-  //       });
-  //       currentDate.setDate(currentDate.getDate() + 1); // Pindah ke hari berikutnya
-  //     }
-  //     return ranges;
-  //   };
-
-  //   // Helper function to merge insights from different chunks
-  //   const mergeInsights = (existingInsight, newData) => {
-  //     return {
-  //       ...existingInsight,
-  //       ...newData
-  //     };
-  //   };
-
-  //   // Helper function to fetch insights with rate limiting and chunking
-  //   const fetchInsightsWithRetry = async (path, dateRange, fieldChunk) => {
-  //     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  //     let attempts = 0;
-  //     const maxAttempts = 3;
-
-  //     while (attempts < maxAttempts) {
-  //       try {
-  //         const response: any = await new Promise((resolve, reject) => {
-  //           fb.api(
-  //             path,
-  //             'GET',
-  //             {
-  //               fields: fieldChunk.join(','),
-  //               time_range: dateRange,
-  //               limit: 100
-  //             },
-  //             (res) => {
-  //               if (!res || res.error) {
-  //                 reject(res?.error);
-  //               } else {
-  //                 resolve(res);
-  //               }
-  //             }
-  //           );
-  //         });
-  //         if (response.data) {
-  //           return response.data;
-  //         }
-  //         return null;
-  //       } catch (error) {
-  //         attempts++;
-  //         if (error.code === 2 && error.error_subcode === 1504018) {
-  //           await delay(5000 * attempts);
-  //           continue;
-  //         }
-  //         if (attempts === maxAttempts) {
-  //           console.warn(
-  //             `Failed to fetch chunk for ${path}, continuing with partial data`
-  //           );
-  //           return null;
-  //         }
-  //       }
-  //     }
-  //   };
-
-  //   const dateRanges = getDateRanges();
-  //   const processedInsights = new Map(); // Cache for merging chunks
-
-  //   // Process each account
-  //   for (const account of accountData) {
-  //     try {
-  //       // Process each date range
-  //       for (const dateRange of dateRanges) {
-  //         let mergedData: any = {};
-
-  //         // Fetch each chunk of fields
-  //         for (const fieldChunk of fieldChunks) {
-  //           await delay(1000); // Rate limiting delay between chunks
-  //           // `/act_${account.account_id}/insights`,
-  //           const chunkData = await fetchInsightsWithRetry(
-  //             `/act_327016482341703/insights`,
-  //             dateRange,
-  //             fieldChunk
-  //           );
-
-  //           if (chunkData && chunkData[0]) {
-  //             mergedData = mergeInsights(mergedData, chunkData[0]);
-  //           }
-  //         }
-
-  //         // Only save if we have data
-  //         if (Object.keys(mergedData).length > 0) {
-  //           mergedData.reference_type = 'ad_account';
-  //           mergedData.referenceId = 'act_327016482341703';
-  //           mergedData.date = mergedData.date_start;
-  //           delete mergedData.date_start;
-  //           const insightData = await this.insightRepository.create(mergedData);
-  //           console.log(insightData);
-  //           await this.insightRepository.save(insightData);
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.log(error, '<<<<');
-  //       throw new HttpException(error, 500);
-  //       console.error(
-  //         `Error processing insights for account ${account.account_id}:`,
-  //         error
-  //       );
-  //       // Continue with next account instead of throwing
-  //       console.warn(`Skipping account ${account.account_id} due to error`);
-  //     }
-  //   }
-
-  //   return {
-  //     statusCode: HttpStatus.OK,
-  //     message: 'Insights processed successfully'
-  //   };
-  // }
-
-  // async getInsights() {
-  //   const accountData = await this.adAccountRepository.find({
-  //     select: ['name', 'account_id', 'business_name']
-  //   });
-
-  //   if (accountData.length < 1) {
-  //     return {
-  //       statusCode: HttpStatus.OK,
-  //       message: 'Tidak Ada Data Yang Diproses'
-  //     };
-  //   }
-
-  //   const fb = await this.initializeFB();
-  //   const fieldChunks = [
-  //     // Core metrics chunk
-  //     [
-  //       'reach',
-  //       'impressions',
-  //       'clicks',
-  //       'spend',
-  //       'ctr',
-  //       'cpc',
-  //       'cpm',
-  //       'date_start',
-  //       'date_stop'
-  //     ],
-  //     // Video metrics chunk
-  //     [
-  //       'video_30_sec_watched_actions',
-  //       'video_avg_time_watched_actions',
-  //       'video_play_actions',
-  //       'video_p25_watched_actions',
-  //       'video_p50_watched_actions',
-  //       'video_p75_watched_actions',
-  //       'video_p95_watched_actions',
-  //       'video_p100_watched_actions'
-  //     ],
-  //     // Cost metrics chunk
-  //     [
-  //       'cost_per_outbound_click',
-  //       'cost_per_thruplay',
-  //       'cost_per_unique_action_type',
-  //       'cost_per_unique_click',
-  //       'cost_per_unique_inline_link_click',
-  //       'cost_per_unique_outbound_click',
-  //       'cost_per_action_type',
-  //       'cost_per_conversion',
-  //       'cost_per_inline_post_engagement'
-  //     ],
-  //     // Engagement metrics chunk
-  //     [
-  //       'engagement_rate_ranking',
-  //       'estimated_ad_recall_rate',
-  //       'estimated_ad_recallers',
-  //       'inline_link_click_ctr',
-  //       'inline_link_clicks',
-  //       'inline_post_engagement'
-  //     ],
-  //     // Additional metrics chunk
-  //     [
-  //       'website_ctr',
-  //       'website_purchase_roas',
-  //       'purchase_roas',
-  //       'quality_ranking',
-  //       'place_page_name',
-  //       'marketing_messages_delivery_rate'
-  //     ]
-  //   ];
-
-  //   // Get today's date range
-  //   const getDateRangeForToday = () => {
-  //     const today = new Date();
-  //     const dateStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-  //     return {
-  //       since: dateStr,
-  //       until: dateStr
-  //     };
-  //   };
-
-  //   const mergeInsights = (existingInsight, newData) => {
-  //     return {
-  //       ...existingInsight,
-  //       ...newData
-  //     };
-  //   };
-
-  //   const fetchInsightsWithRetry = async (path, dateRange, fieldChunk) => {
-  //     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  //     let attempts = 0;
-  //     const maxAttempts = 3;
-  //     while (attempts < maxAttempts) {
-  //       try {
-  //         const response: any = await new Promise((resolve, reject) => {
-  //           fb.api(
-  //             path,
-  //             'GET',
-  //             {
-  //               fields: fieldChunk.join(','),
-  //               time_range: dateRange,
-  //               limit: 100
-  //             },
-  //             (res) => {
-  //               if (!res || res.error) {
-  //                 reject(res?.error);
-  //               } else {
-  //                 resolve(res);
-  //               }
-  //             }
-  //           );
-  //         });
-  //         if (response.data) {
-  //           return response.data;
-  //         }
-  //         return null;
-  //       } catch (error) {
-  //         attempts++;
-  //         if (error.code === 2 && error.error_subcode === 1504018) {
-  //           await delay(5000 * attempts);
-  //           continue;
-  //         }
-  //         if (attempts === maxAttempts) {
-  //           console.warn(
-  //             `Failed to fetch chunk for ${path}, continuing with partial data`
-  //           );
-  //           return null;
-  //         }
-  //       }
-  //     }
-  //   };
-
-  //   const dateRange = getDateRangeForToday(); // Single date range for today
-
-  //   // Process each account
-  //   for (const account of accountData) {
-  //     try {
-  //       // Fetch campaigns for the account
-  //       const campaigns = await this.campaignRepository.find({
-  //         where: { ad_account: account }
-  //       });
-
-  //       // Fetch insights for AdAccount
-  //       let mergedAccountData: any = {};
-  //       for (const fieldChunk of fieldChunks) {
-  //         await delay(1000); // Rate limiting delay between chunks
-  //         const accountChunkData = await fetchInsightsWithRetry(
-  //           `/act_${account.account_id}/insights`,
-  //           dateRange,
-  //           fieldChunk
-  //         );
-  //         if (accountChunkData && accountChunkData[0]) {
-  //           mergedAccountData = mergeInsights(
-  //             mergedAccountData,
-  //             accountChunkData[0]
-  //           );
-  //         }
-  //       }
-  //       if (Object.keys(mergedAccountData).length > 0) {
-  //         mergedAccountData.reference_type = 'ad_account';
-  //         mergedAccountData.referenceId = `act_${account.account_id}`;
-  //         mergedAccountData.date = mergedAccountData.date_start;
-  //         delete mergedAccountData.date_start;
-  //         const accountInsight = await this.insightRepository.create(
-  //           mergedAccountData
-  //         );
-  //         await this.insightRepository.save(accountInsight);
-  //       }
-
-  //       // Process each campaign
-  //       for (const campaign of campaigns) {
-  //         let mergedCampaignData: any = {};
-  //         for (const fieldChunk of fieldChunks) {
-  //           await delay(1000); // Rate limiting delay between chunks
-  //           const campaignChunkData = await fetchInsightsWithRetry(
-  //             `/campaign/${campaign.id}/insights`,
-  //             dateRange,
-  //             fieldChunk
-  //           );
-  //           if (campaignChunkData && campaignChunkData[0]) {
-  //             mergedCampaignData = mergeInsights(
-  //               mergedCampaignData,
-  //               campaignChunkData[0]
-  //             );
-  //           }
-  //         }
-  //         if (Object.keys(mergedCampaignData).length > 0) {
-  //           mergedCampaignData.reference_type = 'campaign';
-  //           mergedCampaignData.referenceId = campaign.id;
-  //           mergedCampaignData.date = mergedCampaignData.date_start;
-  //           delete mergedCampaignData.date_start;
-  //           const campaignInsight = await this.insightRepository.create(
-  //             mergedCampaignData
-  //           );
-  //           await this.insightRepository.save(campaignInsight);
-  //         }
-
-  //         // Fetch ad sets for the campaign
-  //         const adSets = await this.adSetRepository.find({
-  //           where: { campaign: campaign }
-  //         });
-
-  //         // Process each ad set
-  //         for (const adSet of adSets) {
-  //           let mergedAdSetData: any = {};
-  //           for (const fieldChunk of fieldChunks) {
-  //             await delay(1000); // Rate limiting delay between chunks
-  //             const adSetChunkData = await fetchInsightsWithRetry(
-  //               `/adset/${adSet.id}/insights`,
-  //               dateRange,
-  //               fieldChunk
-  //             );
-  //             if (adSetChunkData && adSetChunkData[0]) {
-  //               mergedAdSetData = mergeInsights(
-  //                 mergedAdSetData,
-  //                 adSetChunkData[0]
-  //               );
-  //             }
-  //           }
-  //           if (Object.keys(mergedAdSetData).length > 0) {
-  //             mergedAdSetData.reference_type = 'ad_set';
-  //             mergedAdSetData.referenceId = adSet.id;
-  //             mergedAdSetData.date = mergedAdSetData.date_start;
-  //             delete mergedAdSetData.date_start;
-  //             const adSetInsight = await this.insightRepository.create(
-  //               mergedAdSetData
-  //             );
-  //             await this.insightRepository.save(adSetInsight);
-  //           }
-
-  //           // Fetch ads for the ad set
-  //           const ads = await this.adRepository.find({
-  //             where: { adset: adSet.id }
-  //           });
-
-  //           // Process each ad
-  //           for (const ad of ads) {
-  //             let mergedAdData: any = {};
-  //             for (const fieldChunk of fieldChunks) {
-  //               await delay(1000); // Rate limiting delay between chunks
-  //               const adChunkData = await fetchInsightsWithRetry(
-  //                 `/ad/${ad.id}/insights`,
-  //                 dateRange,
-  //                 fieldChunk
-  //               );
-  //               if (adChunkData && adChunkData[0]) {
-  //                 mergedAdData = mergeInsights(mergedAdData, adChunkData[0]);
-  //               }
-  //             }
-  //             if (Object.keys(mergedAdData).length > 0) {
-  //               mergedAdData.reference_type = 'ad';
-  //               mergedAdData.referenceId = ad.id;
-  //               mergedAdData.date = mergedAdData.date_start;
-  //               delete mergedAdData.date_start;
-  //               const adInsight = await this.insightRepository.create(
-  //                 mergedAdData
-  //               );
-  //               await this.insightRepository.save(adInsight);
-  //             }
-  //           }
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.log(error, '<<<<');
-  //       throw new HttpException(error, 500);
-  //       console.error(
-  //         `Error processing insights for account ${account.account_id}:`,
-  //         error
-  //       );
-  //       console.warn(`Skipping account ${account.account_id} due to error`);
-  //     }
-  //   }
-
-  //   return {
-  //     statusCode: HttpStatus.OK,
-  //     message: 'Insights processed successfully'
-  //   };
-  // }
 
   async fetchInsightsWithRetry(path, dateRange, fieldChunk) {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1250,5 +776,104 @@ export class CronService {
     };
   }
 
-  async getDateRangeForToday() {}
+  async getCustomAudienceList() {
+    // Ambil semua akun iklan dari database
+    const accountData = await this.adAccountRepository.find({
+      select: ['name', 'account_id', 'business_name', 'id']
+    });
+
+    if (accountData.length < 1) {
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Tidak Ada Data Akun Iklan Yang Ditemukan'
+      };
+    }
+
+    const fb = await this.initializeFB();
+    let result = [];
+
+    for (const account of accountData) {
+      try {
+        let allAudiences = [];
+        let nextPage = `/act_${account.account_id}/customaudiences?fields=id,data_source,customer_file_source,approximate_count_upper_bound,description,approximate_count_lower_bound,time_created,subtype,rule_aggregation,rule,retention_days,pixel_id,permission_for_actions,page_deletion_marked_delete_time,opt_out_link,operation_status,name,lookalike_spec,lookalike_audience_ids,is_value_based,time_updated,time_content_updated,sharing_status,delivery_status&limit=1000`;
+
+        while (nextPage) {
+          const response = await new Promise<any>((resolve, reject) => {
+            fb.api(nextPage, 'GET', {}, (res) => {
+              if (!res || res.error) {
+                console.error(
+                  `Error fetching custom audiences for account ${account.account_id}:`,
+                  res?.error
+                );
+                reject(res?.error);
+              } else {
+                resolve(res);
+              }
+            });
+          });
+
+          if (response.data) {
+            allAudiences.push(...response.data);
+          }
+
+          nextPage = response.paging?.next || null;
+        }
+
+        for (const audienceData of allAudiences) {
+          const existingAudience = await this.customAudienceRepository.findOne({
+            where: { audience_meta_id: audienceData.id },
+            relations: { ad_account_id: true }
+          });
+
+          // Map the audience data to match the entity structure
+          audienceData.audience_meta_id = audienceData.id; // Use a unique identifier
+          audienceData.ad_account_id = account.id;
+          audienceData.time_created = audienceData.time_created
+            ? new Date(audienceData.time_created * 1000)
+            : null;
+          audienceData.time_updated = audienceData.time_updated
+            ? new Date(audienceData.time_updated * 1000)
+            : null;
+
+          delete audienceData.id;
+
+          if (!existingAudience) {
+            const accountRecord = await this.adAccountRepository.findOneBy({
+              account_id: account.account_id
+            });
+
+            if (!accountRecord) {
+              throw new HttpException(
+                `Account ${account.account_id} Tidak Ditemukan`,
+                HttpStatus.NOT_FOUND
+              );
+            }
+
+            audienceData.ad_account = accountRecord;
+
+            console.log(audienceData, '<<<<<< create');
+            await this.customAudienceRepository.save(audienceData);
+          } else {
+            console.log(audienceData.id, '<<<<<< update');
+            await this.customAudienceRepository.update(
+              { audience_meta_id: audienceData.audience_meta_id },
+              { ...audienceData }
+            );
+          }
+        }
+
+        result.push(...allAudiences);
+      } catch (error) {
+        console.error(
+          `Gagal memproses custom audiences untuk account ${account.name}:`,
+          error
+        );
+      }
+    }
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Custom Audiences Diproses Berhasil',
+      data: result
+    };
+  }
 }

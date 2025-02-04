@@ -15,11 +15,12 @@ import { AdSet } from './ad-set.entity';
 import { AdCreative } from './ad-creative.entity';
 import { Insight } from './insight.entity';
 import { User } from './user.entity';
+import { Campaign } from './campaign.entity';
 
 @Entity('ads')
 export class Ad extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @ManyToOne(() => User, (user) => user.ad)
   @JoinColumn({ name: 'user_id' })
@@ -41,7 +42,7 @@ export class Ad extends BaseEntity {
   configured_status: string;
 
   @Column({ nullable: true })
-  campaign_id: string;
+  campaign_meta_id: string;
 
   @Column({ nullable: true })
   campaign: string;
@@ -54,7 +55,11 @@ export class Ad extends BaseEntity {
 
   @ManyToOne(() => AdSet, (adSet) => adSet.ads)
   @JoinColumn({ name: 'ad_set_id' })
-  adSet: AdSet;
+  ad_set_id: AdSet;
+
+  @ManyToOne(() => Campaign, (campaign) => campaign.ads)
+  @JoinColumn({ name: 'campaign_id' })
+  campaign_id: Campaign;
 
   @Column({ nullable: true })
   adset: string;

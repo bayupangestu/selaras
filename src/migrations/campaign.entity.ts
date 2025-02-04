@@ -15,16 +15,17 @@ import { AdAccount } from './ad-account.entity';
 import { AdSet } from './ad-set.entity';
 import { Insight } from './insight.entity';
 import { User } from './user.entity';
+import { Ad } from './ad.entity';
 
 @Entity('campaigns')
 export class Campaign extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column()
   name: string;
 
-  @Column({ name: 'campaign_meta_id' })
+  @Column({ name: 'campaign_meta_id', nullable: true })
   campaign_meta_id!: string;
 
   @ManyToOne(() => AdAccount, (adAccount) => adAccount.campaigns)
@@ -37,6 +38,9 @@ export class Campaign extends BaseEntity {
 
   @OneToMany(() => AdSet, (adSet) => adSet.campaign)
   adSets: AdSet[];
+
+  @OneToMany(() => Ad, (ad) => ad.campaign_id)
+  ads: Ad[];
 
   @OneToMany(() => Insight, (insight) => insight.referenceId)
   insights: Insight[];

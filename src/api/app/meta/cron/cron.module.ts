@@ -9,10 +9,19 @@ import { Insight } from '@/migrations/insight.entity';
 import { SettingService } from '@/api/cms/setting/setting.service';
 import { Setting } from '@/migrations/setting.entity';
 import { AdAccount } from '@/migrations/ad-account.entity';
+import { CustomAudience } from '@/migrations/custom-audience.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Ad, AdSet, Campaign, Insight, Setting, AdAccount])
+    TypeOrmModule.forFeature([
+      Ad,
+      AdSet,
+      Campaign,
+      Insight,
+      Setting,
+      AdAccount,
+      CustomAudience
+    ])
   ],
   controllers: [CronController],
   providers: [CronService, SettingService]
