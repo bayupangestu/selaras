@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { CronController } from './cron.controller';
 import { CronService } from './cron.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Ad } from '@/migrations/ad.entity';
-import { AdSet } from '@/migrations/ad-set.entity';
-import { Campaign } from '@/migrations/campaign.entity';
-import { Insight } from '@/migrations/insight.entity';
+import { Ad } from '@/entity/ad.entity';
+import { AdSet } from '@/entity/ad-set.entity';
+import { Campaign } from '@/entity/campaign.entity';
+import { Insight } from '@/entity/insight.entity';
 import { SettingService } from '@/api/cms/setting/setting.service';
-import { Setting } from '@/migrations/setting.entity';
-import { AdAccount } from '@/migrations/ad-account.entity';
-import { CustomAudience } from '@/migrations/custom-audience.entity';
+import { Setting } from '@/entity/setting.entity';
+import { AdAccount } from '@/entity/ad-account.entity';
+import { CustomAudience } from '@/entity/custom-audience.entity';
 
 @Module({
   imports: [

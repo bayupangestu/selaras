@@ -1,4 +1,4 @@
-import { Role } from '@/migrations/role.entity';
+import { Role } from '@/entity/role.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

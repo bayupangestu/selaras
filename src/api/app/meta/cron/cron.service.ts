@@ -1,10 +1,10 @@
 import { SettingService } from '@/api/cms/setting/setting.service';
-import { AdAccount } from '@/migrations/ad-account.entity';
-import { AdSet } from '@/migrations/ad-set.entity';
-import { Ad } from '@/migrations/ad.entity';
-import { Campaign } from '@/migrations/campaign.entity';
-import { CustomAudience } from '@/migrations/custom-audience.entity';
-import { Insight } from '@/migrations/insight.entity';
+import { AdAccount } from '@/entity/ad-account.entity';
+import { AdSet } from '@/entity/ad-set.entity';
+import { Ad } from '@/entity/ad.entity';
+import { Campaign } from '@/entity/campaign.entity';
+import { CustomAudience } from '@/entity/custom-audience.entity';
+import { Insight } from '@/entity/insight.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FB } from 'fb';

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Setting } from '@/migrations/setting.entity';
+import { Setting } from '@/entity/setting.entity';
 
 @Injectable()
 export class SettingService implements OnModuleInit {

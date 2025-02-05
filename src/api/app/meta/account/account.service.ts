@@ -1,7 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AccountInsights } from '@/migrations/account.entity';
+import { AccountInsights } from '@/entity/account.entity';
 import axios from 'axios';
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { AdSet } from '@/migrations/ad-set.entity';
+import { AdSet } from '@/entity/ad-set.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';

@@ -1,5 +1,5 @@
-import { Campaign } from '@/migrations/campaign.entity';
-import { User } from '@/migrations/user.entity';
+import { Campaign } from '@/entity/campaign.entity';
+import { User } from '@/entity/user.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';

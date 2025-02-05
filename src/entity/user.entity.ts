@@ -16,6 +16,10 @@ import { Campaign } from './campaign.entity';
 import { AdSet } from './ad-set.entity';
 import { Ad } from './ad.entity';
 import { Role } from './role.entity';
+import { UserCampaign } from './user-campaign.entity';
+import { UserAdsets } from './user-adset.entity';
+import { UserAd } from './user-ad.entity';
+import { UserDashboard } from './user-dashboard.entity';
 
 @Entity()
 export class User extends BaseEntity {
@@ -42,6 +46,12 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', nullable: true, default: null })
   public access_token: string;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  start_at: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  end_at: Date;
+
   @OneToMany(() => AdAccount, (adaccount) => adaccount.user_id)
   adaccount: AdAccount[];
 
@@ -53,6 +63,18 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Ad, (ad) => ad.user_id)
   ad: Ad[];
+
+  @OneToMany(() => UserCampaign, (userCampaign) => userCampaign.user_id)
+  user_campaigns: UserCampaign[];
+
+  @OneToMany(() => UserAdsets, (userAdset) => userAdset.user_id)
+  user_adsets: UserAdsets[];
+
+  @OneToMany(() => UserAd, (userAd) => userAd.user_id)
+  user_ads: UserAd[];
+
+  @OneToMany(() => UserDashboard, (userDashboard) => userDashboard.user_id)
+  dashboards: UserDashboard[];
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

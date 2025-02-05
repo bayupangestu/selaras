@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
-import { Ad } from '@/migrations/ad.entity';
+import { Ad } from '@/entity/ad.entity';
 
 @Injectable()
 export class AdService {

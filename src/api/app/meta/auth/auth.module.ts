@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Setting } from '@/migrations/setting.entity';
+import { Setting } from '@/entity/setting.entity';
 import { HttpModule } from '@nestjs/axios';
 import { MetaConfig } from '@/constants/meta';
 import { SettingService } from '@/api/cms/setting/setting.service';
