@@ -15,6 +15,7 @@ import { Campaign } from './campaign.entity';
 import { Ad } from './ad.entity';
 import { Insight } from './insight.entity';
 import { User } from './user.entity';
+import { UserAdsets } from './user-adset.entity';
 
 @Entity('ad_sets')
 export class AdSet extends BaseEntity {
@@ -211,6 +212,9 @@ export class AdSet extends BaseEntity {
 
   @OneToMany(() => Insight, (insight) => insight.referenceId)
   insights: Insight[];
+
+  @OneToMany(() => UserAdsets, (userAdset) => userAdset.meta_adset_id)
+  user_adsets: UserAdsets[];
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

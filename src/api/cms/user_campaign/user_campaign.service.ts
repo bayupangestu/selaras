@@ -4,17 +4,26 @@ import { Platform } from '@/entity/platform.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
+import { Campaign } from '@/entity/campaign.entity';
+import { PlatformStrategyFactory } from '@/shared/strategies';
 
 @Injectable()
 export class UserCampaignService {
-  @InjectRepository(UserCampaign)
-  private readonly userCampaignRepository: Repository<UserCampaign>;
+  constructor(
+    @InjectRepository(UserCampaign)
+    private readonly userCampaignRepository: Repository<UserCampaign>,
 
-  @InjectRepository(User)
-  private readonly userRepository: Repository<User>;
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
 
-  @InjectRepository(Platform)
-  private readonly platformRepository: Repository<Platform>;
+    @InjectRepository(Platform)
+    private readonly platformRepository: Repository<Platform>,
+
+    @InjectRepository(Campaign)
+    private readonly campaignRepository: Repository<Campaign>,
+
+    private readonly platformStrategyFactory: PlatformStrategyFactory
+  ) {}
 
   async createUserCampaign(body: any) {
     const userData = await this.userRepository.findOne({
@@ -23,13 +32,26 @@ export class UserCampaignService {
     if (!userData) {
       throw new HttpException('User not found', 404);
     }
-
     const platformData = await this.platformRepository.findOne({
       where: { id: body.platform_id }
     });
     if (!platformData) {
       throw new HttpException('Platform not found', 404);
     }
+    const platformStrategy = await this.platformStrategyFactory.getStrategy(
+      platformData.name
+    );
+
+    const campaignId = `${platformData.name}_campaign_id`;
+    if (!body[campaignId]) {
+      throw new HttpException(
+        `${campaignId} is required for ${platformData.name} platform`,
+        400
+      );
+    }
+
+    await platformStrategy.validateCampaign(body[campaignId]); // Validasi adset
+    const adsetMapping = { [campaignId]: body[campaignId] };
 
     body.user = userData;
     body.platform = platformData;
@@ -95,7 +117,7 @@ export class UserCampaignService {
     };
   }
 
-  async findOneUserCampaign(id: number, user: any) {
+  async findOneUserCampaign(id: string) {
     const userCampaign = await this.userCampaignRepository.findOne({
       relations: {
         user_id: true,
@@ -110,7 +132,35 @@ export class UserCampaignService {
     };
   }
 
-  async updateUserCampaign(id: number, body: any, user: any) {
+  // async updateUserCampaign(id: string, body: any) {
+  //   const userCampaign = await this.userCampaignRepository.findOne({
+  //     relations: {
+  //       user_id: true,
+  //       platform_id: true
+  //     },
+  //     where: { id }
+  //   });
+  //   if (!userCampaign) throw new HttpException('User Campaign Not Found', 404);
+
+  //   const platformData = await this.platformRepository.findOne({
+  //     where: { id: body.platform_id }
+  //   });
+  //   if (!platformData) {
+  //     throw new HttpException('Platform not found', 404);
+  //   }
+
+  //   body.platform = platformData;
+
+  //   Object.assign(userCampaign, body);
+  //   await this.userCampaignRepository.save(userCampaign);
+
+  //   return {
+  //     statusCode: 200,
+  //     message: 'User Campaign updated!',
+  //     data: userCampaign
+  //   };
+  // }
+  async updateUserCampaign(id: string, body: any) {
     const userCampaign = await this.userCampaignRepository.findOne({
       relations: {
         user_id: true,
@@ -118,7 +168,9 @@ export class UserCampaignService {
       },
       where: { id }
     });
-    if (!userCampaign) throw new HttpException('User Campaign Not Found', 404);
+    if (!userCampaign) {
+      throw new HttpException('User Campaign Not Found', 404);
+    }
 
     const platformData = await this.platformRepository.findOne({
       where: { id: body.platform_id }
@@ -127,9 +179,26 @@ export class UserCampaignService {
       throw new HttpException('Platform not found', 404);
     }
 
-    body.platform = platformData;
+    const platformStrategy = await this.platformStrategyFactory.getStrategy(
+      platformData.name
+    );
 
-    Object.assign(userCampaign, body);
+    const campaignIdField = `${platformData.name}_campaign_id`;
+    if (!body[campaignIdField]) {
+      throw new HttpException(
+        `${campaignIdField} is required for ${platformData.name} platform`,
+        400
+      );
+    }
+
+    await platformStrategy.validateCampaign(body[campaignIdField]);
+
+    Object.assign(userCampaign, {
+      ...body,
+      [campaignIdField]: body[campaignIdField],
+      platform: platformData
+    });
+
     await this.userCampaignRepository.save(userCampaign);
 
     return {
@@ -139,7 +208,7 @@ export class UserCampaignService {
     };
   }
 
-  async deleteUserCampaign(id: number, user: any) {
+  async deleteUserCampaign(id: string) {
     const userCampaign = await this.userCampaignRepository.findOne({
       relations: {
         user_id: true,

@@ -15,11 +15,13 @@ import { UserAdsets } from './user-adset.entity';
 import { Platform } from './platform.entity';
 import { UserDashboard } from './user-dashboard.entity';
 import { DashboardAttributeVisibility } from './dashboard-attribute-visibility.entity';
+import { Campaign } from './campaign.entity';
+import { CampaignType } from './campaign-type.entity';
 
 @Entity()
 export class UserCampaign {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => User, (user) => user.user_campaigns)
   @JoinColumn({ name: 'user_id' })
@@ -28,6 +30,18 @@ export class UserCampaign {
   @ManyToOne(() => Platform, (platform) => platform.user_campaigns)
   @JoinColumn({ name: 'platform_id' })
   platform_id: Platform;
+
+  @ManyToOne(() => Campaign, (campaign) => campaign.user_campaigns)
+  @JoinColumn({ name: 'meta_campaign_id' })
+  meta_campaign_id: Campaign;
+
+  // @ManyToOne(() => GoogleCampaign, (googleCampaign) => googleCampaign.user_campaigns)
+  // @JoinColumn({ name: 'google_campaign_id' })
+  // google_campaign_id: Campaign;
+
+  @ManyToOne(() => CampaignType, (campaignType) => campaignType.user_campaign)
+  @JoinColumn({ name: 'campaign_type_id' })
+  campaign_type_id: CampaignType;
 
   @Column()
   name: string;

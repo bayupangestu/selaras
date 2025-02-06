@@ -15,15 +15,20 @@ import { User } from './user.entity';
 import { Exclude } from 'class-transformer';
 import { UserAd } from './user-ad.entity';
 import { UserDashboard } from './user-dashboard.entity';
+import { AdSet } from './ad-set.entity';
 
 @Entity()
 export class UserAdsets {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => UserCampaign, (campaign) => campaign.user_adsets)
   @JoinColumn({ name: 'user_campaign_id' })
   user_campaign_id: UserCampaign;
+
+  @ManyToOne(() => AdSet, (adSet) => adSet.user_adsets)
+  @JoinColumn({ name: 'meta_adset_id' })
+  meta_adset_id: AdSet;
 
   @ManyToOne(() => User, (user) => user.user_adsets)
   @JoinColumn({ name: 'user_id' })

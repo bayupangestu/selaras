@@ -9,6 +9,7 @@ export class PlatformService {
   private readonly platformRepository: Repository<Platform>;
 
   async createPlatform(body: any) {
+    body.name = body.name.toLowerCase();
     const platform = this.platformRepository.create(body);
     await this.platformRepository.save(platform);
     return {

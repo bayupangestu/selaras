@@ -9,6 +9,8 @@ import {
   OneToMany
 } from 'typeorm';
 import { UserDashboard } from './user-dashboard.entity';
+import { Campaign } from './campaign.entity';
+import { UserCampaign } from './user-campaign.entity';
 
 @Entity()
 export class CampaignType {
@@ -23,6 +25,12 @@ export class CampaignType {
     (userDashboard) => userDashboard.campaign_type_id
   )
   dashboards: UserDashboard[];
+
+  @OneToMany(
+    () => UserCampaign,
+    (UserCampaign) => UserCampaign.campaign_type_id
+  )
+  user_campaign: UserCampaign[];
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

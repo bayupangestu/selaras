@@ -6,11 +6,14 @@ import { Platform } from '@/entity/platform.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { User } from '@/entity/user.entity';
 import { AuthModule } from '@/api/auth/auth.module';
+import { Campaign } from '@/entity/campaign.entity';
+import { SharedModule } from '@/shared/shared.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Platform, UserCampaign, User]),
-    AuthModule
+    TypeOrmModule.forFeature([Platform, UserCampaign, User, Campaign]),
+    AuthModule,
+    SharedModule
   ],
   controllers: [UserCampaignController],
   providers: [UserCampaignService]

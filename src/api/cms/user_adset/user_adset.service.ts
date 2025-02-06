@@ -4,17 +4,22 @@ import { User } from '@/entity/user.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
+import { PlatformStrategyFactory } from '@/shared/strategies';
 
 @Injectable()
 export class UserAdsetService {
-  @InjectRepository(UserAdsets)
-  private readonly userAdsetsRepository: Repository<UserAdsets>;
+  constructor(
+    @InjectRepository(UserAdsets)
+    private readonly userAdsetsRepository: Repository<UserAdsets>,
 
-  @InjectRepository(UserCampaign)
-  private readonly userCampaignRepository: Repository<UserCampaign>;
+    @InjectRepository(UserCampaign)
+    private readonly userCampaignRepository: Repository<UserCampaign>,
 
-  @InjectRepository(User)
-  private readonly userRepository: Repository<User>;
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+
+    private readonly platformStrategyFactory: PlatformStrategyFactory
+  ) {}
 
   async createUserAdset(body: any) {
     const userData = await this.userRepository.findOne({
@@ -25,11 +30,27 @@ export class UserAdsetService {
     }
 
     const userCampaignData = await this.userCampaignRepository.findOne({
+      relations: {
+        platform_id: true
+      },
       where: { id: body.user_campaign_id }
     });
     if (!userCampaignData) {
       throw new HttpException('User Campaign not found', 404);
     }
+    const platformStrategy = await this.platformStrategyFactory.getStrategy(
+      userCampaignData.platform_id.name
+    );
+
+    const adSetIdField = `${userCampaignData.platform_id.name}_adset_id`;
+    if (!body[adSetIdField]) {
+      throw new HttpException(
+        `${adSetIdField} is required for ${userCampaignData.platform_id.name} platform`,
+        400
+      );
+    }
+
+    await platformStrategy.validateAdset(body[adSetIdField]);
 
     body.user = userData;
     body.user_campaign = userCampaignData;
@@ -97,7 +118,7 @@ export class UserAdsetService {
     };
   }
 
-  async findOneUserAdset(id: number) {
+  async findOneUserAdset(id: string) {
     const userAdset = await this.userAdsetsRepository.findOne({
       relations: {
         user_id: true,
@@ -112,7 +133,7 @@ export class UserAdsetService {
     };
   }
 
-  async updateUserAdset(id: number, body: any) {
+  async updateUserAdset(id: string, body: any) {
     const userAdset = await this.userAdsetsRepository.findOne({
       relations: {
         user_id: true,
@@ -123,6 +144,9 @@ export class UserAdsetService {
     if (!userAdset) throw new HttpException('User Adset Not Found', 404);
 
     const userCampaignData = await this.userCampaignRepository.findOne({
+      relations: {
+        platform_id: true
+      },
       where: { id: body.user_campaign_id }
     });
     if (!userCampaignData) {
@@ -130,6 +154,19 @@ export class UserAdsetService {
     }
 
     body.user_campaign = userCampaignData;
+    const platformStrategy = await this.platformStrategyFactory.getStrategy(
+      userCampaignData.platform_id.name
+    );
+
+    const adSetIdField = `${userCampaignData.platform_id.name}_adset_id`;
+    if (!body[adSetIdField]) {
+      throw new HttpException(
+        `${adSetIdField} is required for ${userCampaignData.platform_id.name} platform`,
+        400
+      );
+    }
+
+    await platformStrategy.validateAdset(body[adSetIdField]);
 
     Object.assign(userAdset, body);
     await this.userAdsetsRepository.save(userAdset);
@@ -141,7 +178,7 @@ export class UserAdsetService {
     };
   }
 
-  async deleteUserAdset(id: number) {
+  async deleteUserAdset(id: string) {
     const userAdset = await this.userAdsetsRepository.findOne({
       relations: {
         user_id: true,

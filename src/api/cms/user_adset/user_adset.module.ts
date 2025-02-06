@@ -6,11 +6,13 @@ import { AuthModule } from '@/api/app/meta/auth/auth.module';
 import { UserAdsets } from '@/entity/user-adset.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { User } from '@/entity/user.entity';
+import { SharedModule } from '@/shared/shared.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserAdsets, UserCampaign, User]),
-    AuthModule
+    AuthModule,
+    SharedModule
   ],
   controllers: [UserAdsetController],
   providers: [UserAdsetService]
