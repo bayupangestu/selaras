@@ -1,40 +1,60 @@
+import { Ad } from '@/entity/ad.entity';
 import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
 import { User } from '@/entity/user.entity';
+import { PlatformStrategyFactory } from '@/shared/strategies';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, ILike, Repository } from 'typeorm';
 
 @Injectable()
 export class UserAdService {
-  @InjectRepository(UserAd)
-  private readonly userAdRepository: Repository<UserAd>;
+  constructor(
+    @InjectRepository(UserAd)
+    private readonly userAdRepository: Repository<UserAd>,
 
-  @InjectRepository(UserAdsets)
-  private readonly userAdsetsRepository: Repository<UserAdsets>;
+    @InjectRepository(UserAdsets)
+    private readonly userAdsetsRepository: Repository<UserAdsets>,
 
-  @InjectRepository(User)
-  private readonly userRepository: Repository<User>;
+    @InjectRepository(Ad)
+    private readonly adRepository: Repository<Ad>,
+
+    private readonly platformStrategyFactory: PlatformStrategyFactory
+  ) {}
 
   async createUserAd(body: any) {
-    const userData = await this.userRepository.findOne({
-      where: { id: body.user_id }
-    });
-    if (!userData) {
-      throw new HttpException('User not found', 404);
-    }
-
     const userAdsetData = await this.userAdsetsRepository.findOne({
+      relations: {
+        user_campaign_id: {
+          platform_id: true,
+          user_id: true
+        }
+      },
       where: { id: body.adset_id }
     });
     if (!userAdsetData) {
       throw new HttpException('User Adset not found', 404);
     }
 
-    body.user = userData;
+    const platformStrategy = await this.platformStrategyFactory.getStrategy(
+      userAdsetData.user_campaign_id.platform_id.name
+    );
+
+    const adIdField = `${userAdsetData.user_campaign_id.platform_id.name}_ad_id`;
+    if (!body[adIdField]) {
+      throw new HttpException(
+        `${adIdField} is required for ${userAdsetData.user_campaign_id.platform_id.name} platform`,
+        400
+      );
+    }
+
+    await platformStrategy.validateAd(body[adIdField]);
+
+    body.user = userAdsetData.user_campaign_id.user_id;
     body.user_adset = userAdsetData;
 
     const userAd = this.userAdRepository.create(body);
+
     await this.userAdRepository.save(userAd);
 
     return {
@@ -53,7 +73,7 @@ export class UserAdService {
         },
         where: {
           user_adset_id: {
-            id: query.adset_id
+            id: query.user_adset_id
           }
         },
         order: {
@@ -70,11 +90,13 @@ export class UserAdService {
     const skip = (query.page - 1) * query.pageSize;
 
     const qb = this.userAdRepository.createQueryBuilder('userAd');
-    qb.leftJoinAndSelect('userAd.user', 'user')
-      .leftJoinAndSelect('userAd.user_adset', 'userAdset')
-      .where('userAd.user_adset_id = :user_adset_id', {
-        user_adset_id: query.user_adset_id
-      });
+    qb.leftJoinAndSelect('userAd.user_id', 'user').leftJoinAndSelect(
+      'userAd.user_adset_id',
+      'userAdset'
+    );
+    // .where('userAd.user_adset_id = :user_adset_id', {
+    //   user_adset_id: query.user_adset_id
+    // });
 
     qb.skip(skip).take(query.pageSize);
 
@@ -96,7 +118,7 @@ export class UserAdService {
     };
   }
 
-  async findOneUserAd(id: number, user: any) {
+  async findOneUserAd(id: string) {
     const userAd = await this.userAdRepository.findOne({
       relations: {
         user_id: true,
@@ -111,7 +133,7 @@ export class UserAdService {
     };
   }
 
-  async updateUserAd(id: number, body: any) {
+  async updateUserAd(id: string, body: any) {
     const userAd = await this.userAdRepository.findOne({
       relations: {
         user_id: true,
@@ -122,13 +144,33 @@ export class UserAdService {
     if (!userAd) throw new HttpException('User Ad Not Found', 404);
 
     const userAdsetData = await this.userAdsetsRepository.findOne({
+      relations: {
+        user_campaign_id: {
+          platform_id: true
+        }
+      },
       where: { id: body.adset_id }
     });
+
     if (!userAdsetData) {
       throw new HttpException('User Adset not found', 404);
     }
 
     body.user_adset = userAdsetData;
+
+    const platformStrategy = await this.platformStrategyFactory.getStrategy(
+      userAdsetData.user_campaign_id.platform_id.name
+    );
+
+    const adIdField = `${userAdsetData.user_campaign_id.platform_id.name}_ad_id`;
+    if (!body[adIdField]) {
+      throw new HttpException(
+        `${adIdField} is required for ${userAdsetData.user_campaign_id.platform_id.name} platform`,
+        400
+      );
+    }
+
+    await platformStrategy.validateAd(body[adIdField]);
 
     Object.assign(userAd, body);
     await this.userAdRepository.save(userAd);
@@ -140,7 +182,7 @@ export class UserAdService {
     };
   }
 
-  async deleteUserAd(id: number, user: any) {
+  async deleteUserAd(id: string) {
     const userAd = await this.userAdRepository.findOne({
       relations: {
         user_id: true,
@@ -154,6 +196,21 @@ export class UserAdService {
     return {
       statusCode: 200,
       message: 'User Ad deleted!'
+    };
+  }
+
+  async findAllMetaAd(query) {
+    let option: any = {
+      select: ['id', 'name']
+    };
+    if (query.search) {
+      option['where'] = option['where'] || {};
+      option['where']['name'] = ILike(`%${query.search}%`);
+    }
+    const result = await this.adRepository.find(option);
+    return {
+      statusCode: 200,
+      data: result
     };
   }
 }

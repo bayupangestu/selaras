@@ -9,17 +9,17 @@ import {
   JoinColumn,
   OneToMany
 } from 'typeorm';
-// import { Adsets } from '../adsets/entities/adsets.entity';
-// import { User } from '../user/entities/user.entity';
+
 import { UserAdsets } from './user-adset.entity';
 import { User } from './user.entity';
 import { UserDashboard } from './user-dashboard.entity';
 import { Exclude } from 'class-transformer';
+import { Ad } from './ad.entity';
 
 @Entity()
 export class UserAd {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => User, (user) => user.user_ads)
   @JoinColumn({ name: 'user_id' })
@@ -28,6 +28,10 @@ export class UserAd {
   @ManyToOne(() => UserAdsets, (userAdset) => userAdset.user_ads)
   @JoinColumn({ name: 'adset_id' })
   user_adset_id: UserAdsets;
+
+  @ManyToOne(() => Ad, (ad) => ad.user_ads)
+  @JoinColumn({ name: 'meta_ad_id' })
+  meta_ad_id: Ad;
 
   @OneToMany(() => UserDashboard, (userDashboard) => userDashboard.user_ad_id)
   dashboards: UserDashboard[];

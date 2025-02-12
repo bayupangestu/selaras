@@ -37,6 +37,9 @@ export class UserAdsets {
   @Column()
   name: string;
 
+  @Column()
+  budget: number;
+
   @OneToMany(() => UserAd, (userAd) => userAd.user_adset_id)
   user_ads: UserAd[];
 

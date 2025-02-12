@@ -9,11 +9,6 @@ import {
   JoinColumn,
   OneToOne
 } from 'typeorm';
-// import { User } from '../user/entities/user.entity';
-// import { UserCampaign } from '../user-campaign/entities/user-campaign.entity';
-// import { Adsets } from '../adsets/entities/adsets.entity';
-// import { Ad } from '../ad/entities/ad.entity';
-// import { CampaignType } from '../campaign-type/entities/campaign-type.entity';
 import { User } from './user.entity';
 import { UserCampaign } from './user-campaign.entity';
 import { UserAdsets } from './user-adset.entity';

@@ -1,36 +1,33 @@
 import { Exclude } from 'class-transformer';
 import {
+  BaseEntity,
+  Column,
   Entity,
   PrimaryGeneratedColumn,
-  Column,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  OneToMany
+  OneToMany,
+  ManyToOne,
+  JoinColumn
 } from 'typeorm';
-import { UserDashboard } from './user-dashboard.entity';
-import { Campaign } from './campaign.entity';
+import { User } from './user.entity';
 import { UserCampaign } from './user-campaign.entity';
 
 @Entity()
-export class CampaignType {
+export class UserProject extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  public id!: string;
 
-  @Column()
-  name: string;
+  @Column({ type: 'varchar' })
+  public name: string;
 
-  @OneToMany(
-    () => UserDashboard,
-    (userDashboard) => userDashboard.campaign_type_id
-  )
-  dashboards: UserDashboard[];
+  @ManyToOne(() => User, (user) => user.user_projects)
+  @JoinColumn({ name: 'user_id' })
+  user_id: User;
 
-  @OneToMany(
-    () => UserCampaign,
-    (UserCampaign) => UserCampaign.campaign_type_id
-  )
-  user_campaign: UserCampaign[];
+  @OneToMany(() => UserCampaign, (userCampaign) => userCampaign.user_project_id)
+  user_campaigns: UserCampaign[];
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

@@ -8,10 +8,11 @@ import { User } from '@/entity/user.entity';
 import { AuthModule } from '@/api/auth/auth.module';
 import { Campaign } from '@/entity/campaign.entity';
 import { SharedModule } from '@/shared/shared.module';
+import { UserProject } from '@/entity/user-project.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Platform, UserCampaign, User, Campaign]),
+    TypeOrmModule.forFeature([Platform, UserCampaign, UserProject, Campaign]),
     AuthModule,
     SharedModule
   ],

@@ -42,6 +42,7 @@ export class MetaPlatformStrategy implements PlatformStrategy {
     const ad = await this.metaAdRepository.findOne({
       where: { id: adId }
     });
+
     if (!ad) {
       throw new HttpException('Meta Ad not found', 404);
     }

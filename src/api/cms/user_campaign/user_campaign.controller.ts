@@ -35,6 +35,13 @@ export class UserCampaignController {
     return await this.userCampaignService.findAllUserCampaigns(query);
   }
 
+  @Get('meta-campaign')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(ClassSerializerInterceptor)
+  async findAllMetaCampaign(@Query() query: any) {
+    return await this.userCampaignService.findAllMetaCampaign(query);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)

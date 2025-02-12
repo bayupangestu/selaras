@@ -7,10 +7,11 @@ import { UserAdsets } from '@/entity/user-adset.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { User } from '@/entity/user.entity';
 import { SharedModule } from '@/shared/shared.module';
+import { AdSet } from '@/entity/ad-set.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserAdsets, UserCampaign, User]),
+    TypeOrmModule.forFeature([UserAdsets, UserCampaign, User, AdSet]),
     AuthModule,
     SharedModule
   ],

@@ -17,6 +17,7 @@ import { UserDashboard } from './user-dashboard.entity';
 import { DashboardAttributeVisibility } from './dashboard-attribute-visibility.entity';
 import { Campaign } from './campaign.entity';
 import { CampaignType } from './campaign-type.entity';
+import { UserProject } from './user-project.entity';
 
 @Entity()
 export class UserCampaign {
@@ -42,6 +43,10 @@ export class UserCampaign {
   @ManyToOne(() => CampaignType, (campaignType) => campaignType.user_campaign)
   @JoinColumn({ name: 'campaign_type_id' })
   campaign_type_id: CampaignType;
+
+  @ManyToOne(() => UserProject, (userProject) => userProject.user_campaigns)
+  @JoinColumn({ name: 'user_project_id' })
+  user_project_id: UserProject;
 
   @Column()
   name: string;

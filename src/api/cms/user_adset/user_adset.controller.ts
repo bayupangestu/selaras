@@ -36,6 +36,13 @@ export class UserAdsetController {
     return await this.userAdsetsService.findAllUserAdsets(query);
   }
 
+  @Get('meta-adset')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(ClassSerializerInterceptor)
+  async findAllMetaAdset(@Query() query: any) {
+    return await this.userAdsetsService.findAllMetaAdSet(query);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)

@@ -10,6 +10,16 @@ export class PlatformService {
 
   async createPlatform(body: any) {
     body.name = body.name.toLowerCase();
+
+    const checkDuplicate = await this.platformRepository.findOne({
+      where: {
+        name: body.name
+      }
+    });
+
+    if (checkDuplicate)
+      throw new HttpException('Platform name already exists', 400);
+
     const platform = this.platformRepository.create(body);
     await this.platformRepository.save(platform);
     return {

@@ -6,9 +6,15 @@ import { AuthModule } from '@/api/auth/auth.module';
 import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
 import { User } from '@/entity/user.entity';
+import { SharedModule } from '@/shared/shared.module';
+import { Ad } from '@/entity/ad.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserAd, UserAdsets, User]), AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([UserAd, UserAdsets, User, Ad]),
+    AuthModule,
+    SharedModule
+  ],
   controllers: [UserAdController],
   providers: [UserAdService]
 })

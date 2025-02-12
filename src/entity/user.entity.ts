@@ -20,6 +20,7 @@ import { UserCampaign } from './user-campaign.entity';
 import { UserAdsets } from './user-adset.entity';
 import { UserAd } from './user-ad.entity';
 import { UserDashboard } from './user-dashboard.entity';
+import { UserProject } from './user-project.entity';
 
 @Entity()
 export class User extends BaseEntity {
@@ -75,6 +76,9 @@ export class User extends BaseEntity {
 
   @OneToMany(() => UserDashboard, (userDashboard) => userDashboard.user_id)
   dashboards: UserDashboard[];
+
+  @OneToMany(() => UserProject, (userProject) => userProject.user_id)
+  user_projects: UserProject[];
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

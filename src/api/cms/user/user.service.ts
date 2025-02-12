@@ -20,6 +20,9 @@ export class UserService {
     if (!roleData) {
       throw new HttpException('Role not found', 404);
     }
+    if (!body.email || body.password) {
+      throw new HttpException('Email or Password is required', 400);
+    }
     let user: User = await this.userRepository.findOne({
       where: { email: body.email.toLowerCase() }
     });
@@ -34,8 +37,8 @@ export class UserService {
     user.email = body.email.toLowerCase();
     user.password = await bcryptHasPassword(body.password);
     user.role_id = roleData;
-    user.start_at = new Date(body.start_at);
-    user.end_at = new Date(body.end_at);
+    user.start_at = new Date(body.start_at) || null;
+    user.end_at = new Date(body.end_at) || null;
 
     await this.userRepository.save(user);
     return {
@@ -74,21 +77,32 @@ export class UserService {
     query.pageSize = query.pageSize || 10;
     const skip = (query.page - 1) * query.pageSize;
 
-    const qb = this.userRepository.createQueryBuilder('platform');
+    const qb = this.userRepository.createQueryBuilder('user');
+    qb.innerJoin('user.role_id', 'role');
+
+    // Apply pagination
+    qb.skip(skip).take(query.pageSize);
+
+    // Add the condition for role.name === 'user'
+    qb.andWhere('role.name = :roleName', { roleName: 'user' });
 
     qb.skip(skip).take(query.pageSize);
 
     if (query.search) {
       qb.andWhere(
         new Brackets((qb) => {
-          qb.where('platform.name ILIKE :search', {
+          qb.where('user.name ILIKE :search', {
+            search: `%${query.search}%`
+          }).orWhere('user.email ILIKE :search', {
             search: `%${query.search}%`
           });
         })
       );
     }
 
+    // Execute the query and get results
     const [result, total] = await qb.getManyAndCount();
+
     return {
       statusCode: 200,
       data: result,
