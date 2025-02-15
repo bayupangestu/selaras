@@ -16,11 +16,15 @@ import { UserAd } from './user-ad.entity';
 import { CampaignType } from './campaign-type.entity';
 import { Exclude } from 'class-transformer';
 import { DashboardAttributeVisibility } from './dashboard-attribute-visibility.entity';
+import { Campaign } from './campaign.entity';
+import { AdSet } from './ad-set.entity';
+import { Ad } from './ad.entity';
+import { json } from 'stream/consumers';
 
 @Entity()
 export class UserDashboard {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => User, (user) => user.dashboards)
   @JoinColumn({ name: 'user_id' })
@@ -42,40 +46,60 @@ export class UserDashboard {
   @JoinColumn({ name: 'campaign_type_id' })
   campaign_type_id: CampaignType;
 
-  @Column()
-  time_period: string;
+  @ManyToOne(() => Campaign, (campaign) => campaign.user_dashboards)
+  @JoinColumn({ name: 'meta_campaign_id' })
+  meta_campaign_id: Campaign;
 
-  @Column()
+  @ManyToOne(() => AdSet, (adSet) => adSet.user_dashboards)
+  @JoinColumn({ name: 'meta_adset_id' })
+  meta_adset_id: AdSet;
+
+  @ManyToOne(() => Ad, (ad) => ad.user_dashboards)
+  @JoinColumn({ name: 'meta_ad_id' })
+  meta_ad_id: Ad;
+
+  @ManyToOne(
+    () => DashboardAttributeVisibility,
+    (dashboardAttributeVisibility) =>
+      dashboardAttributeVisibility.user_dashboards
+  )
+  @JoinColumn({ name: 'dashboard_attribute_visibility_id' })
+  dashboard_attribute_visibility_id: DashboardAttributeVisibility;
+
+  @Column({ nullable: true })
+  time_period: Date;
+
+  @Column({ nullable: true })
   reach: number;
 
-  @Column()
+  @Column({ nullable: true })
   impression: number;
 
-  @Column()
+  @Column({ nullable: true })
   clicks: number;
 
-  @Column()
+  @Column({ type: 'float', nullable: true })
   ctr: number;
 
-  @Column()
+  @Column({ nullable: true })
   post_engagement: number;
 
-  @Column()
+  @Column({ nullable: true })
   views: number;
 
-  @Column()
-  thruplay: number;
+  @Column({ nullable: true, type: 'json' })
+  thruplay: any;
 
-  @Column()
+  @Column({ nullable: true })
   platform: string;
 
-  @Column()
-  demography: string;
+  @Column({ nullable: true, type: 'json' })
+  demography: any;
 
-  @Column()
+  @Column({ nullable: true })
   thumbnail_ads: string;
 
-  @Column()
+  @Column({ nullable: true })
   leads: number;
 
   @Exclude()

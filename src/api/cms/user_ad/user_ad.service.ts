@@ -67,6 +67,7 @@ export class UserAdService {
   async findAllUserAds(query: any) {
     if (query.type === 'form') {
       const result = await this.userAdRepository.find({
+        select: ['id', 'name'],
         relations: {
           user_id: true,
           user_adset_id: true
@@ -90,10 +91,9 @@ export class UserAdService {
     const skip = (query.page - 1) * query.pageSize;
 
     const qb = this.userAdRepository.createQueryBuilder('userAd');
-    qb.leftJoinAndSelect('userAd.user_id', 'user').leftJoinAndSelect(
-      'userAd.user_adset_id',
-      'userAdset'
-    );
+    qb.leftJoinAndSelect('userAd.user_id', 'user')
+      .leftJoinAndSelect('userAd.user_adset_id', 'userAdset')
+      .leftJoinAndSelect('userAd.meta_ad_id', 'ad');
     // .where('userAd.user_adset_id = :user_adset_id', {
     //   user_adset_id: query.user_adset_id
     // });
@@ -122,7 +122,8 @@ export class UserAdService {
     const userAd = await this.userAdRepository.findOne({
       relations: {
         user_id: true,
-        user_adset_id: true
+        user_adset_id: true,
+        meta_ad_id: true
       },
       where: { id }
     });

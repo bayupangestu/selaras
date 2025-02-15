@@ -534,8 +534,9 @@ export class CronService {
             'GET',
             {
               fields: fieldChunk.join(','),
-              date_preset: 'today',
-              // time_range: { since: '2023-12-04', until: '2023-12-05' },
+              // date_preset: 'yesterday',
+              time_range: { since: '2023-12-03', until: '2023-12-03' },
+              // breakdowns,
               limit: 100
             },
             (res) => {
@@ -581,6 +582,7 @@ export class CronService {
         path,
         dateRange,
         fieldChunk
+        // 'publisher_platform'
       );
 
       if (chunkData && chunkData[0]) {
@@ -595,22 +597,80 @@ export class CronService {
     return mergedData;
   }
 
+  async fetchInsightsForEntityAgeAndGender(path, dateRange, fieldChunks) {
+    // const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    // let mergedData = {};
+    // for (const fieldChunk of fieldChunks) {
+    //   await delay(1000); // Rate limiting delay between chunks
+    //   const chunkData = await this.fetchInsightsWithRetry(
+    //     path,
+    //     dateRange,
+    //     fieldChunk,
+    //     'age,gender'
+    //   );
+    //   if (chunkData && chunkData[0]) {
+    //     mergedData = {
+    //       ...mergedData,
+    //       ...chunkData[0]
+    //     };
+    //   } else {
+    //     return null;
+    //   }
+    // }
+    // return mergedData;
+  }
+
   // Helper function to save insights to the database
   async saveInsights(insightData, referenceType, referenceId) {
-    if (Object.keys(insightData).length > 0) {
-      insightData.reference_type = referenceType;
-      insightData.referenceId = referenceId;
-      insightData.date = insightData.date_start;
-      delete insightData.date_start;
+    try {
+      if (Object.keys(insightData).length > 0) {
+        insightData.reference_type = referenceType;
+        insightData.referenceId = referenceId;
+        insightData.date = insightData.date_start;
+        delete insightData.date_start;
 
-      const insight = await this.insightRepository.create(insightData);
-      await this.insightRepository.save(insight);
+        switch (referenceType) {
+          case 'ad_account':
+            insightData.ad_account_id =
+              await this.adAccountRepository.findOneBy({
+                id: referenceId
+              });
+            break;
+          case 'campaign':
+            insightData.campaign_id = await this.campaignRepository.findOneBy({
+              id: referenceId
+            });
+            break;
+          case 'ad_set':
+            insightData.adset_id = await this.adSetRepository.findOneBy({
+              id: referenceId
+            });
+            break;
+          case 'ad':
+            insightData.ad_id = await this.adRepository.findOneBy({
+              id: referenceId
+            });
+            delete insightData.ad_id.tracking_specs;
+            break;
+          default:
+            throw new HttpException(
+              'Invalid reference type',
+              HttpStatus.BAD_REQUEST
+            );
+        }
+        await this.insightRepository.save(insightData);
+      }
+    } catch (err) {
+      console.log(err, 'err save insight');
+      throw new HttpException(err.message, 400);
     }
   }
 
   // Process insights for AdAccount
   async processAdAccountInsights(account, dateRange, fieldChunks) {
     const path = `/act_${account.account_id}/insights`;
+    console.log(path);
+
     const insights = await this.fetchInsightsForEntity(
       path,
       dateRange,
@@ -619,11 +679,18 @@ export class CronService {
     if (insights === null) {
       return null;
     }
-    await this.saveInsights(
-      insights,
-      'ad_account',
-      `act_${account.account_id}`
-    );
+    await this.saveInsights(insights, 'ad_account', account.id);
+
+    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
+    //   path,
+    //   dateRange,
+    //   fieldChunks
+    // );
+
+    // if (insightAgeGender === null) {
+    //   return null;
+    // }
+    // await this.saveInsights(insightAgeGender, 'ad_account', account.id);
   }
 
   // Process insights for Campaign
@@ -638,6 +705,16 @@ export class CronService {
       return null;
     }
     await this.saveInsights(insights, 'campaign', campaign.id);
+
+    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
+    //   path,
+    //   dateRange,
+    //   fieldChunks
+    // );
+    // if (insightAgeGender === null) {
+    //   return null;
+    // }
+    // await this.saveInsights(insightAgeGender, 'campaign', campaign.id);
   }
 
   // Process insights for AdSet
@@ -652,6 +729,15 @@ export class CronService {
       return null;
     }
     await this.saveInsights(insights, 'ad_set', adSet.id);
+    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
+    //   path,
+    //   dateRange,
+    //   fieldChunks
+    // );
+    // if (insightAgeGender === null) {
+    //   return null;
+    // }
+    // await this.saveInsights(insightAgeGender, 'ad_set', adSet.id);
   }
 
   // Process insights for Ad
@@ -666,6 +752,15 @@ export class CronService {
       return null;
     }
     await this.saveInsights(insights, 'ad', ad.id);
+    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
+    //   path,
+    //   dateRange,
+    //   fieldChunks
+    // );
+    // if (insightAgeGender === null) {
+    //   return null;
+    // }
+    // await this.saveInsights(insightAgeGender, 'ad', ad.id);
   }
 
   // Main function
@@ -711,13 +806,17 @@ export class CronService {
       [
         'engagement_rate_ranking',
         'estimated_ad_recall_rate',
-        'inline_link_click_ctr'
+        'inline_link_click_ctr',
+        'inline_post_engagement'
       ],
       // Additional metrics chunk
       ['website_ctr', 'purchase_roas', 'quality_ranking']
     ];
     const today = new Date();
-    const dateRange = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    today.setDate(today.getDate() - 1);
+
+    // const dateRange = today.toISOString().split('T')[0];
+    const dateRange = '2023-12-25';
 
     for (const account of accountData) {
       try {

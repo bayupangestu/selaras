@@ -38,7 +38,7 @@ export class AccountService {
         const adInsight = this.accountInsightsRepository.create(data);
         await this.accountInsightsRepository.save(adInsight);
       }
-      return true;
+
       // Fetch data with secondFields and update the corresponding records
       const secondInsightsData = await fetchData(secondFields);
       for (const data of secondInsightsData) {

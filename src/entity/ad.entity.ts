@@ -17,6 +17,7 @@ import { Insight } from './insight.entity';
 import { User } from './user.entity';
 import { Campaign } from './campaign.entity';
 import { UserAd } from './user-ad.entity';
+import { UserDashboard } from './user-dashboard.entity';
 
 @Entity('ads')
 export class Ad extends BaseEntity {
@@ -119,11 +120,14 @@ export class Ad extends BaseEntity {
   @Column({ nullable: true, type: 'timestamptz' })
   updated_time: Date;
 
-  @OneToMany(() => Insight, (insight) => insight.referenceId)
+  @OneToMany(() => Insight, (insight) => insight.ad_id)
   insights: Insight[];
 
   @OneToMany(() => UserAd, (userAd) => userAd.meta_ad_id)
   user_ads: UserAd[];
+
+  @OneToMany(() => UserDashboard, (userDashboard) => userDashboard.meta_ad_id)
+  user_dashboards: UserDashboard[];
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

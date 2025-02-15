@@ -10,6 +10,8 @@ import { SettingService } from '@/api/cms/setting/setting.service';
 import { Setting } from '@/entity/setting.entity';
 import { AdAccount } from '@/entity/ad-account.entity';
 import { CustomAudience } from '@/entity/custom-audience.entity';
+import { InsightListenerService } from '@/shared/subscribers/insight.subscriber';
+import { UserDashboard } from '@/entity/user-dashboard.entity';
 
 @Module({
   imports: [
@@ -20,10 +22,11 @@ import { CustomAudience } from '@/entity/custom-audience.entity';
       Insight,
       Setting,
       AdAccount,
-      CustomAudience
+      CustomAudience,
+      UserDashboard
     ])
   ],
   controllers: [CronController],
-  providers: [CronService, SettingService]
+  providers: [CronService, SettingService, InsightListenerService]
 })
 export class CronModule {}

@@ -6,19 +6,45 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn
+  DeleteDateColumn,
+  AfterInsert,
+  ManyToOne,
+  JoinColumn,
+  AfterUpdate,
+  BeforeInsert
 } from 'typeorm';
+import { UserDashboard } from './user-dashboard.entity';
+import { AdAccount } from './ad-account.entity';
+import { Campaign } from './campaign.entity';
+import { AdSet } from './ad-set.entity';
+import { Ad } from './ad.entity';
 
 @Entity('insights')
 export class Insight extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string; // Ubah tipe data dari `number` ke `string` karena menggunakan UUID
 
-  @Column({ type: 'varchar' })
-  reference_type: string;
+  // @Column({ type: 'varchar' })
+  // reference_type: string;
 
-  @Column({ type: 'varchar' })
-  referenceId: string; // Ubah tipe data dari `any` ke `string`
+  // @Column({ type: 'varchar' })
+  // referenceId: string; // Ubah tipe data dari `any` ke `string`
+
+  @ManyToOne(() => AdAccount, (adAccount) => adAccount.insights)
+  @JoinColumn({ name: 'ad_account_id' })
+  ad_account_id: AdAccount;
+
+  @ManyToOne(() => Campaign, (campaing) => campaing.insights)
+  @JoinColumn({ name: 'campaign_id' })
+  campaign_id: Campaign;
+
+  @ManyToOne(() => AdSet, (adset) => adset.insights)
+  @JoinColumn({ name: 'adset_id' })
+  adset_id: AdSet;
+
+  @ManyToOne(() => Ad, (ad) => ad.insights)
+  @JoinColumn({ name: 'ad_id' })
+  ad_id: Ad;
 
   @Column({ type: 'date' })
   date: Date;
@@ -109,6 +135,15 @@ export class Insight extends BaseEntity {
 
   @Column({ type: 'json', nullable: true })
   video_p95_watched_actions: { action_type: string; value: string }[];
+
+  @Column({ type: 'varchar', nullable: true })
+  publisher_platform: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  age: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  gender: string;
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

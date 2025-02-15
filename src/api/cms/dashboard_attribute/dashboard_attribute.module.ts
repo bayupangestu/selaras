@@ -6,13 +6,15 @@ import { DashboardAttributeVisibility } from '@/entity/dashboard-attribute-visib
 import { Insight } from '@/entity/insight.entity';
 import { AuthModule } from '@/api/auth/auth.module';
 import { UserDashboard } from '@/entity/user-dashboard.entity';
+import { UserCampaign } from '@/entity/user-campaign.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       DashboardAttributeVisibility,
       Insight,
-      UserDashboard
+      UserDashboard,
+      UserCampaign
     ]),
     AuthModule
   ],

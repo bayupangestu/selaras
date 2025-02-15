@@ -4,8 +4,10 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { parse } from 'path';
+import { AppDataSource } from './shared/typeorm/app-data-source';
 
 async function bootstrap() {
+  await AppDataSource.initialize();
   const app: NestExpressApplication = await NestFactory.create(AppModule, {
     cors: true
   });

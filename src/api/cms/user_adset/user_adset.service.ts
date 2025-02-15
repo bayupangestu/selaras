@@ -88,10 +88,9 @@ export class UserAdsetService {
     const skip = (query.page - 1) * query.pageSize;
 
     const qb = this.userAdsetsRepository.createQueryBuilder('userAdset');
-    qb.leftJoinAndSelect('userAdset.user_id', 'user').leftJoinAndSelect(
-      'userAdset.user_campaign_id',
-      'userCampaign'
-    );
+    qb.leftJoinAndSelect('userAdset.user_id', 'user')
+      .leftJoinAndSelect('userAdset.user_campaign_id', 'userCampaign')
+      .leftJoinAndSelect('userAdset.meta_adset_id', 'adSet');
     // .where('userAdset.user_campaign_id = :user_campaign_id', {
     //   user_campaign_id: query.user_campaign_id
     // });
@@ -120,7 +119,8 @@ export class UserAdsetService {
     const userAdset = await this.userAdsetsRepository.findOne({
       relations: {
         user_id: true,
-        user_campaign_id: true
+        user_campaign_id: true,
+        meta_adset_id: true
       },
       where: { id }
     });

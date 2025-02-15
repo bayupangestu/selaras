@@ -1,24 +1,34 @@
-// src/shared/shared.module.ts
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { MetaPlatformStrategy } from './strategies/meta-platform.strategy';
 import { GooglePlatformStrategy } from './strategies/google-platform.strategy';
 import { PlatformStrategyFactory } from './strategies/platform-strategy.factory';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { Campaign } from '@/entity/campaign.entity';
 import { AdSet } from '@/entity/ad-set.entity';
 import { Ad } from '@/entity/ad.entity';
+import { UserDashboard } from '@/entity/user-dashboard.entity';
+import { InsightListenerService } from './subscribers/insight.subscriber';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Campaign, AdSet, Ad])],
+  imports: [TypeOrmModule.forFeature([Campaign, AdSet, Ad, UserDashboard])],
   providers: [
     MetaPlatformStrategy,
     GooglePlatformStrategy,
-    PlatformStrategyFactory
+    PlatformStrategyFactory,
+    // {
+    //   provide: InsightListenerService,
+    //   useFactory: (dataSource: DataSource) =>
+    //     new InsightListenerService(dataSource),
+    //   inject: [DataSource]
+    // }
+    InsightListenerService
   ],
   exports: [
     MetaPlatformStrategy,
     GooglePlatformStrategy,
-    PlatformStrategyFactory
+    PlatformStrategyFactory,
+    InsightListenerService
   ]
 })
 export class SharedModule {}

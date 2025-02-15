@@ -188,7 +188,7 @@ export class AdAccount {
   @OneToMany(() => AssignedUser, (user) => user.adAccount)
   assignedUsers: AssignedUser[];
 
-  @OneToMany(() => Insight, (insight) => insight.referenceId)
+  @OneToMany(() => Insight, (insight) => insight.ad_account_id)
   insights: Insight[];
 
   @OneToMany(

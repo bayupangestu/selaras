@@ -79,11 +79,7 @@ export class UserCampaignService {
           user_id: true,
           platform_id: true
         },
-        where: {
-          user_id: {
-            id: query.user_id
-          }
-        },
+        // where: {},
         order: {
           created_at: 'DESC'
         }
@@ -101,7 +97,9 @@ export class UserCampaignService {
     const qb = this.userCampaignRepository.createQueryBuilder('userCampaign');
     qb.leftJoinAndSelect('userCampaign.user_id', 'user')
       .leftJoinAndSelect('userCampaign.platform_id', 'platform')
-      .leftJoinAndSelect('userCampaign.user_project_id', 'project');
+      .leftJoinAndSelect('userCampaign.user_project_id', 'project')
+      .leftJoinAndSelect('userCampaign.meta_campaign_id', 'campaign')
+      .leftJoinAndSelect('userCampaign.campaign_type_id', 'campaign_type');
     // .where('userCampaign.user_project_id = :projectId', {
     //   projectId: query.user_project_id
     // });
@@ -130,7 +128,10 @@ export class UserCampaignService {
     const userCampaign = await this.userCampaignRepository.findOne({
       relations: {
         user_id: true,
-        platform_id: true
+        platform_id: true,
+        campaign_type_id: true,
+        meta_campaign_id: true,
+        user_project_id: true
       },
       where: { id }
     });
@@ -184,8 +185,7 @@ export class UserCampaignService {
 
     return {
       statusCode: 200,
-      message: 'User Campaign updated!',
-      data: userCampaign
+      message: 'User Campaign updated!'
     };
   }
 

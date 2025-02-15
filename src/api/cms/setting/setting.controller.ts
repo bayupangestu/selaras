@@ -6,6 +6,7 @@ import {
   Inject,
   Param,
   Post,
+  Put,
   Query,
   UseInterceptors
 } from '@nestjs/common';
@@ -26,5 +27,23 @@ export class SettingController {
   @UseInterceptors(ClassSerializerInterceptor)
   private async get(@Query() query: any) {
     return await this.settingService.getValue(query.key);
+  }
+
+  @Get('find-all')
+  @UseInterceptors(ClassSerializerInterceptor)
+  private async findAll(@Query() query: any) {
+    return await this.settingService.findAll(query);
+  }
+
+  @Get('find-one/:id')
+  @UseInterceptors(ClassSerializerInterceptor)
+  private async findOne(@Param('id') id: string) {
+    return await this.settingService.findOne(id);
+  }
+
+  @Put('update/:id')
+  @UseInterceptors(ClassSerializerInterceptor)
+  private async update(@Param('id') id: string, @Body() body: any) {
+    return await this.settingService.update(id, body);
   }
 }

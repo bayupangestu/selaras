@@ -17,6 +17,7 @@ import { Insight } from './insight.entity';
 import { User } from './user.entity';
 import { Ad } from './ad.entity';
 import { UserCampaign } from './user-campaign.entity';
+import { UserDashboard } from './user-dashboard.entity';
 
 @Entity('campaigns')
 export class Campaign extends BaseEntity {
@@ -49,8 +50,14 @@ export class Campaign extends BaseEntity {
   @OneToMany(() => Ad, (ad) => ad.campaign_id)
   ads: Ad[];
 
-  @OneToMany(() => Insight, (insight) => insight.referenceId)
+  @OneToMany(() => Insight, (insight) => insight.campaign_id)
   insights: Insight[];
+
+  @OneToMany(
+    () => UserDashboard,
+    (userDashboard) => userDashboard.meta_campaign_id
+  )
+  user_dashboards: UserDashboard[];
 
   @Column({ name: 'account_id', nullable: true })
   account_id: string;

@@ -1,5 +1,8 @@
+import { UserDashboard } from '@/entity/user-dashboard.entity';
 import { Injectable } from '@nestjs/common';
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { InsightListenerService } from '../subscribers/insight.subscriber';
 @Injectable()
 export class TypeOrmConfigService implements TypeOrmOptionsFactory {
   public createTypeOrmOptions(): TypeOrmModuleOptions {
@@ -13,8 +16,9 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
       entities: ['dist/**/*.entity.{ts,js}'],
       migrations: ['dist/migrations/*.{ts,js}'],
       migrationsTableName: 'typeorm_migrations',
+      subscribers: [InsightListenerService],
       logger: 'file',
-      synchronize: true // never use TRUE in production!
+      synchronize: true
     };
   }
 }
