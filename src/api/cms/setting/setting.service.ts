@@ -70,7 +70,7 @@ export class SettingService implements OnModuleInit {
     if (query.search) {
       qb.andWhere(
         new Brackets((qb) => {
-          qb.where('platform.name ILIKE :search', {
+          qb.where('setting.key ILIKE :search', {
             search: `%${query.search}%`
           });
         })

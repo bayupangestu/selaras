@@ -1,5 +1,5 @@
-import { Insight } from '@/entity/insight.entity';
-import { UserDashboard } from '@/entity/user-dashboard.entity';
+import { Insight } from '../../entity/insight.entity';
+import { UserDashboard } from '../../entity/user-dashboard.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -110,7 +110,7 @@ export class InsightListenerService
 
       // Jika tidak ada kondisi yang valid, keluar dari fungsi
       if (whereConditions.length === 0) {
-        console.warn('No valid conditions found for insight:', insight);
+        console.warn('No valid conditions found for insight');
         return;
       }
 
@@ -121,7 +121,13 @@ export class InsightListenerService
         relations: {
           meta_campaign_id: true,
           meta_ad_id: true,
-          meta_adset_id: true
+          meta_adset_id: true,
+          user_id: true,
+          campaign_type_id: true,
+          user_ad_id: true,
+          user_adset_id: true,
+          user_campaign_id: true,
+          dashboard_attribute_visibility_id: true
         },
         where: whereConditions
       });
@@ -131,44 +137,14 @@ export class InsightListenerService
       }
 
       // Jika data dashboard ditemukan, periksa time_period
-      if (dashboardData.time_period !== insight.date) {
-        // Buat data baru jika time_period berbeda
-        const newDashboardData = new UserDashboard();
-        newDashboardData.time_period = insight.date;
-        newDashboardData.reach = insight.reach;
-        newDashboardData.impression = insight.impressions;
-        newDashboardData.clicks = insight.clicks;
-        newDashboardData.ctr = Number(insight.ctr);
-        newDashboardData.post_engagement = insight.inline_post_engagement;
-        newDashboardData.views = null;
-        newDashboardData.thruplay = insight.cost_per_thruplay;
-        newDashboardData.platform = insight.publisher_platform;
-        newDashboardData.demography = {
-          age: insight.age,
-          gender: insight.gender
-        };
-        newDashboardData.thumbnail_ads = null;
-        newDashboardData.leads = null;
+      console.log(dashboardData.time_period, dashboardData.id, '<<<<<<<<');
 
-        // Set relasi berdasarkan kondisi yang tersedia
-        if (insight.campaign_id?.id) {
-          newDashboardData.meta_campaign_id = insight.campaign_id;
-        }
-        if (insight.adset_id?.id) {
-          newDashboardData.meta_adset_id = insight.adset_id;
-        }
-        if (insight.ad_id?.id) {
-          newDashboardData.meta_ad_id = insight.ad_id;
-        }
-
-        // Simpan data baru
-        await userDashboardRepository.save(newDashboardData);
-        console.log(
-          'New dashboard data created due to different time_period:',
-          newDashboardData
-        );
-      } else {
+      if (
+        !dashboardData.time_period ||
+        dashboardData.time_period === insight.date
+      ) {
         // Update data jika time_period sama
+        dashboardData.time_period = insight.date;
         dashboardData.reach = insight.reach;
         dashboardData.impression = insight.impressions;
         dashboardData.clicks = insight.clicks;
@@ -186,7 +162,48 @@ export class InsightListenerService
 
         // Simpan perubahan
         await userDashboardRepository.update(dashboardData.id, dashboardData);
-        console.log('Existing dashboard data updated:', dashboardData);
+        console.log('Existing dashboard data updated');
+        return;
+      } else if (dashboardData.time_period !== insight.date) {
+        // Buat data baru jika time_period berbeda
+        const newDashboardData = new UserDashboard();
+        newDashboardData.time_period = insight.date;
+        newDashboardData.reach = insight.reach;
+        newDashboardData.impression = insight.impressions;
+        newDashboardData.clicks = insight.clicks;
+        newDashboardData.ctr = Number(insight.ctr);
+        newDashboardData.post_engagement = insight.inline_post_engagement;
+        newDashboardData.views = null;
+        newDashboardData.thruplay = insight.cost_per_thruplay;
+        newDashboardData.platform = insight.publisher_platform;
+        newDashboardData.demography = {
+          age: insight.age,
+          gender: insight.gender
+        };
+        newDashboardData.thumbnail_ads = null;
+        newDashboardData.leads = null;
+        newDashboardData.user_id = dashboardData.user_id;
+        newDashboardData.campaign_type_id = dashboardData.campaign_type_id;
+        newDashboardData.dashboard_attribute_visibility_id =
+          dashboardData.dashboard_attribute_visibility_id;
+
+        // Set relasi berdasarkan kondisi yang tersedia
+        if (insight.campaign_id?.id) {
+          newDashboardData.meta_campaign_id = insight.campaign_id;
+          newDashboardData.user_campaign_id = dashboardData.user_campaign_id;
+        }
+        if (insight.adset_id?.id) {
+          newDashboardData.meta_adset_id = insight.adset_id;
+          newDashboardData.user_adset_id = dashboardData.user_adset_id;
+        }
+        if (insight.ad_id?.id) {
+          newDashboardData.meta_ad_id = insight.ad_id;
+          newDashboardData.user_ad_id = dashboardData.user_ad_id;
+        }
+
+        // Simpan data baru
+        await userDashboardRepository.save(newDashboardData);
+        console.log('New dashboard data created due to different time_period');
       }
     } catch (err) {
       console.error(err, 'err subscriber');

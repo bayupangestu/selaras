@@ -535,7 +535,7 @@ export class CronService {
             {
               fields: fieldChunk.join(','),
               // date_preset: 'yesterday',
-              time_range: { since: '2023-12-03', until: '2023-12-03' },
+              time_range: { since: '2023-12-14', until: '2023-12-14' },
               // breakdowns,
               limit: 100
             },
@@ -810,7 +810,7 @@ export class CronService {
         'inline_post_engagement'
       ],
       // Additional metrics chunk
-      ['website_ctr', 'purchase_roas', 'quality_ranking']
+      ['website_ctr', 'purchase_roas', 'quality_ranking', 'actions', 'spend']
     ];
     const today = new Date();
     today.setDate(today.getDate() - 1);

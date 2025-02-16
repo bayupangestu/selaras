@@ -66,7 +66,7 @@ export class UserDashboard {
   @JoinColumn({ name: 'dashboard_attribute_visibility_id' })
   dashboard_attribute_visibility_id: DashboardAttributeVisibility;
 
-  @Column({ nullable: true })
+  @Column({ type: 'date', nullable: true })
   time_period: Date;
 
   @Column({ nullable: true })

@@ -161,6 +161,105 @@ export class DashboardAttributeService {
     }
   }
 
+  //   async campaignUserDashboard(query: any) {
+  //     if (!query.user_campaign_id) {
+  //       throw new HttpException(
+  //         'user campaign id must be provided.',
+  //         HttpStatus.BAD_REQUEST
+  //       );
+  //     }
+
+  //     const userCampaignData = await this.userCampaignRepository.findOne({
+  //       where: { id: query.user_campaign_id }
+  //     });
+
+  //     if (!userCampaignData) {
+  //       throw new HttpException('User campaign not found', 404);
+  //     }
+
+  //     const userDashboard = await this.userDashboardRepository.find({
+  //       relations: {
+  //         dashboard_attribute_visibility_id: true,
+  //         user_campaign_id: true
+  //       },
+  //       where: {
+  //         user_campaign_id: { id: userCampaignData.id }
+  //       }
+  //     });
+
+  //     if (!userDashboard || userDashboard.length === 0) {
+  //       throw new HttpException('User dashboard not found', 404);
+  //     }
+
+  //     // **Langkah 1: Dapatkan daftar atribut yang boleh ditampilkan**
+  //     const allowedAttributes = new Set(userDashboard[0].dashboard_attribute_visibility_id.attribute_name);
+
+  //     // **Langkah 2: Proses data untuk digabungkan**
+  //     const result = {
+  //         user_campaign_id: userCampaignData.id,
+  //         name: userCampaignData.name,
+  //         budget: userCampaignData.budget,
+  //         start_date: null,
+  //         end_date: null,
+  //     };
+
+  //     // Menyimpan nilai yang akan dijumlahkan
+  //     const aggregatedData: any = {};
+  //     const jsonFields: string[] = ["demography"]; // Field JSON yang perlu digabungkan (thruplay diproses terpisah)
+  //     let startDate: string | null = null;
+  //     let endDate: string | null = null;
+
+  //     // **Tambahkan struktur untuk menyimpan `thruplay` sebagai objek agregat**
+  //     const aggregatedThruplay: Record<string, number> = {};
+
+  //     userDashboard.forEach((item) => {
+  //         const timePeriod = item.time_period;
+
+  //         // Update start_date & end_date
+  //         if (!startDate || new Date(timePeriod) < new Date(startDate)) {
+  //             startDate = timePeriod;
+  //         }
+  //         if (!endDate || new Date(timePeriod) > new Date(endDate)) {
+  //             endDate = timePeriod;
+  //         }
+
+  //         // Looping hanya untuk atribut yang diizinkan
+  //         Object.keys(item).forEach((key) => {
+  //             if (allowedAttributes.has(key)) {
+  //                 if (typeof item[key] === "number") {
+  //                     // Jika angka, jumlahkan
+  //                     aggregatedData[key] = (aggregatedData[key] || 0) + item[key];
+  //                 } else if (jsonFields.includes(key) && Array.isArray(item[key])) {
+  //                     // Jika JSON/Array, gabungkan
+  //                     aggregatedData[key] = [...(aggregatedData[key] || []), ...item[key]];
+  //                 } else if (key === "thruplay" && Array.isArray(item[key])) {
+  //                     // **Khusus untuk thruplay, jumlahkan berdasarkan action_type**
+  //                     item[key].forEach((action) => {
+  //                         const actionType = action.action_type;
+  //                         const value = parseFloat(action.value) || 0;
+  //                         aggregatedThruplay[actionType] = (aggregatedThruplay[actionType] || 0) + value;
+  //                     });
+  //                 } else {
+  //                     // Jika bukan angka atau JSON, gunakan nilai terakhir
+  //                     aggregatedData[key] = item[key];
+  //                 }
+  //             }
+  //         });
+  //     });
+
+  //     // Set start_date & end_date
+  //     result.start_date = startDate;
+  //     result.end_date = endDate;
+
+  //     // Konversi aggregatedThruplay menjadi array JSON
+  //     aggregatedData["thruplay"] = Object.keys(aggregatedThruplay).map((actionType) => ({
+  //         action_type: actionType,
+  //         value: aggregatedThruplay[actionType].toFixed(6) // Pastikan hasil dalam format string dengan 6 desimal
+  //     }));
+
+  //     return { ...result, ...aggregatedData };
+  // }
+
   async campaignUserDashboard(query: any) {
     if (!query.user_campaign_id) {
       throw new HttpException(
@@ -177,7 +276,21 @@ export class DashboardAttributeService {
       throw new HttpException('User campaign not found', 404);
     }
 
-    const userDashboard = await this.userDashboardRepository.findOne({
+    const test = await this.userDashboardRepository.find({
+      relations: {
+        dashboard_attribute_visibility_id: true,
+        user_campaign_id: true
+      },
+      where: {
+        user_campaign_id: { id: userCampaignData.id }
+      },
+      order: {
+        time_period: 'asc'
+      }
+    });
+
+    return test;
+    const userDashboard = await this.userDashboardRepository.find({
       relations: {
         dashboard_attribute_visibility_id: true,
         user_campaign_id: true
@@ -187,27 +300,106 @@ export class DashboardAttributeService {
       }
     });
 
-    if (!userDashboard) {
+    if (!userDashboard || userDashboard.length === 0) {
       throw new HttpException('User dashboard not found', 404);
     }
 
-    // Extract visible attributes
-    const visibleAttributes =
-      userDashboard.dashboard_attribute_visibility_id.attribute_name;
+    // **Fix: Pastikan filter tanggal mencakup satu hari penuh**
+    let startDateFilter = query.start_date
+      ? new Date(`${query.start_date}T00:00:00.000Z`)
+      : null;
+    let endDateFilter = query.end_date
+      ? new Date(`${query.end_date}T23:59:59.999Z`)
+      : null;
 
-    // Filter userDashboard object based on visibleAttributes
-    const filteredDashboard = Object.keys(userDashboard)
-      .filter(
-        (key) =>
-          visibleAttributes.includes(key) ||
-          ['id', 'created_at', 'updated_at'].includes(key)
-      )
-      .reduce((obj, key) => {
-        obj[key] = userDashboard[key];
-        return obj;
-      }, {});
+    const filteredDashboard = userDashboard.filter((item) => {
+      const timePeriodDate = new Date(item.time_period);
+      console.log(startDateFilter, endDateFilter);
 
-    return filteredDashboard;
+      return (
+        (!startDateFilter || timePeriodDate >= startDateFilter) &&
+        (!endDateFilter || timePeriodDate <= endDateFilter)
+      );
+    });
+
+    // **Jika tidak ada data, kembalikan semua `null`**
+    if (filteredDashboard.length === 0) {
+      return {
+        user_campaign_id: userCampaignData.id,
+        name: userCampaignData.name,
+        budget: userCampaignData.budget,
+        start_date: null,
+        end_date: null,
+        reach: null,
+        impression: null,
+        clicks: null,
+        ctr: null,
+        post_engagement: null,
+        thruplay: null
+      };
+    }
+
+    // **Proses Agregasi Data**
+    const allowedAttributes = new Set(
+      filteredDashboard[0].dashboard_attribute_visibility_id.attribute_name
+    );
+    const result: any = {
+      user_campaign_id: userCampaignData.id,
+      name: userCampaignData.name,
+      budget: userCampaignData.budget,
+      start_date: null,
+      end_date: null
+    };
+
+    const aggregatedData: any = {};
+    const jsonFields: string[] = ['demography'];
+    let startDate = null;
+    let endDate = null;
+    const aggregatedThruplay: Record<string, number> = {};
+
+    filteredDashboard.forEach((item) => {
+      const timePeriod = item.time_period;
+
+      if (!startDate || new Date(timePeriod) < new Date(startDate)) {
+        startDate = timePeriod;
+      }
+      if (!endDate || new Date(timePeriod) > new Date(endDate)) {
+        endDate = timePeriod;
+      }
+
+      Object.keys(item).forEach((key) => {
+        if (allowedAttributes.has(key)) {
+          if (typeof item[key] === 'number') {
+            aggregatedData[key] = (aggregatedData[key] || 0) + item[key];
+          } else if (jsonFields.includes(key) && Array.isArray(item[key])) {
+            aggregatedData[key] = [
+              ...(aggregatedData[key] || []),
+              ...item[key]
+            ];
+          } else if (key === 'thruplay' && Array.isArray(item[key])) {
+            item[key].forEach((action) => {
+              const actionType = action.action_type;
+              const value = parseFloat(action.value) || 0;
+              aggregatedThruplay[actionType] =
+                (aggregatedThruplay[actionType] || 0) + value;
+            });
+          } else {
+            aggregatedData[key] = item[key];
+          }
+        }
+      });
+    });
+
+    result.start_date = startDate;
+    result.end_date = endDate;
+    aggregatedData['thruplay'] = Object.keys(aggregatedThruplay).map(
+      (actionType) => ({
+        action_type: actionType,
+        value: aggregatedThruplay[actionType].toFixed(6)
+      })
+    );
+
+    return { ...result, ...aggregatedData };
   }
 
   async adSetDashboard(query: any) {

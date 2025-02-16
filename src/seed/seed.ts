@@ -1,17 +1,20 @@
-import { DataSource } from 'typeorm';
 import { AppDataSource } from '../shared/typeorm/app-data-source';
-import { Platform } from '@/entity/platform.entity';
-import { Role } from '@/entity/role.entity';
-import { Setting } from '@/entity/setting.entity';
-import { User } from '@/entity/user.entity';
-import { CampaignType } from '@/entity/campaign-type.entity';
-import { bcryptHasPassword } from '@/shared/helper/bcrypt';
+import { Platform } from '../entity/platform.entity';
+import { Role } from '../entity/role.entity';
+import { Setting } from '../entity/setting.entity';
+import { User } from '../entity/user.entity';
+import { CampaignType } from '../entity/campaign-type.entity';
+import { bcryptHasPassword } from '../shared/helper/bcrypt';
 
 async function seed() {
   try {
     // Inisialisasi DataSource
     await AppDataSource.initialize();
     console.log('Data Source has been initialized!');
+    console.log(
+      'Entities:',
+      AppDataSource.entityMetadatas.map((e) => e.name)
+    );
 
     const platformRepository = AppDataSource.getRepository(Platform);
     const roleRepository = AppDataSource.getRepository(Role);
@@ -85,6 +88,27 @@ async function seed() {
       });
       await userRepository.save(newUser);
       console.log('Admin user seeded successfully');
+    }
+
+    // Seed Campaign Type
+    const campaignTypes = [
+      { name: 'cpv' },
+      { name: 'cpl' },
+      { name: 'cpe' },
+      { name: 'cpc' },
+      { name: 'cpm' }
+    ];
+    for (const campaignTypeData of campaignTypes) {
+      const existingCampaignType = await campaignTypeRepository.findOne({
+        where: {
+          name: campaignTypeData.name
+        }
+      });
+      if (!existingCampaignType) {
+        const newCampaignType = campaignTypeRepository.create(campaignTypeData);
+        await campaignTypeRepository.save(newCampaignType);
+        console.log(`Campaign Type seeded: ${campaignTypeData.name}`);
+      }
     }
 
     console.log('Seeding completed successfully!');
