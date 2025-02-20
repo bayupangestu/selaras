@@ -11,13 +11,16 @@ import {
   ManyToOne,
   JoinColumn,
   AfterUpdate,
-  BeforeInsert
+  BeforeInsert,
+  OneToMany,
+  OneToOne
 } from 'typeorm';
 import { UserDashboard } from './user-dashboard.entity';
 import { AdAccount } from './ad-account.entity';
 import { Campaign } from './campaign.entity';
 import { AdSet } from './ad-set.entity';
 import { Ad } from './ad.entity';
+import { InsightBreakdown } from './insight-breakdown.entity';
 
 @Entity('insights')
 export class Insight extends BaseEntity {
@@ -136,14 +139,39 @@ export class Insight extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   video_p95_watched_actions: { action_type: string; value: string }[];
 
-  @Column({ type: 'varchar', nullable: true })
-  publisher_platform: string;
+  @Column({ type: 'int', nullable: true })
+  lead: number;
 
-  @Column({ type: 'varchar', nullable: true })
-  age: string;
+  @Column({ type: 'int', nullable: true })
+  link_click: number;
 
-  @Column({ type: 'varchar', nullable: true })
-  gender: string;
+  @Column({ type: 'int', nullable: true })
+  post_engagement: number;
+
+  @Column({ type: 'int', nullable: true })
+  video_views: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_mile: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_engagement: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_view: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_click: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_lead: number;
+
+  @ManyToOne(
+    () => InsightBreakdown,
+    (insightBreakdown) => insightBreakdown.insights
+  )
+  @JoinColumn({ name: 'insight_breakdown_id' })
+  insight_breakdown_id: InsightBreakdown;
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

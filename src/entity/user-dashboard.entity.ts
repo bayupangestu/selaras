@@ -20,6 +20,7 @@ import { Campaign } from './campaign.entity';
 import { AdSet } from './ad-set.entity';
 import { Ad } from './ad.entity';
 import { json } from 'stream/consumers';
+import { InsightBreakdown } from './insight-breakdown.entity';
 
 @Entity()
 export class UserDashboard {
@@ -99,8 +100,39 @@ export class UserDashboard {
   @Column({ nullable: true })
   thumbnail_ads: string;
 
-  @Column({ nullable: true })
-  leads: number;
+  @Column({ type: 'int', nullable: true })
+  lead: number;
+
+  @Column({ type: 'int', nullable: true })
+  link_click: number;
+
+  @Column({ type: 'int', nullable: true })
+  video_views: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_mile: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_engagement: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_view: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_click: number;
+
+  @Column({ type: 'float', nullable: true })
+  cost_per_lead: number;
+
+  @Column({ type: 'float', nullable: true })
+  spend: number;
+
+  @ManyToOne(
+    () => InsightBreakdown,
+    (insightBreakdown) => insightBreakdown.user_dashboards
+  )
+  @JoinColumn({ name: 'insight_breakdown_id' })
+  insight_breakdown_id: InsightBreakdown;
 
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })

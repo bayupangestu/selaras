@@ -53,7 +53,10 @@ export class UserProjectService {
     const skip = (query.page - 1) * query.pageSize;
 
     const qb = this.userProjectRepository.createQueryBuilder('userProject');
-    qb.leftJoinAndSelect('userProject.user_id', 'user');
+    qb.leftJoinAndSelect('userProject.user_id', 'user').orderBy(
+      'userProject.created_at',
+      'DESC'
+    );
     qb.skip(skip).take(query.pageSize);
 
     if (query.search) {

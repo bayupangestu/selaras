@@ -99,7 +99,9 @@ export class UserCampaignService {
       .leftJoinAndSelect('userCampaign.platform_id', 'platform')
       .leftJoinAndSelect('userCampaign.user_project_id', 'project')
       .leftJoinAndSelect('userCampaign.meta_campaign_id', 'campaign')
-      .leftJoinAndSelect('userCampaign.campaign_type_id', 'campaign_type');
+      .leftJoinAndSelect('userCampaign.campaign_type_id', 'campaign_type')
+      .orderBy('userCampaign.created_at', 'DESC');
+
     // .where('userCampaign.user_project_id = :projectId', {
     //   projectId: query.user_project_id
     // });

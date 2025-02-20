@@ -90,7 +90,8 @@ export class UserAdsetService {
     const qb = this.userAdsetsRepository.createQueryBuilder('userAdset');
     qb.leftJoinAndSelect('userAdset.user_id', 'user')
       .leftJoinAndSelect('userAdset.user_campaign_id', 'userCampaign')
-      .leftJoinAndSelect('userAdset.meta_adset_id', 'adSet');
+      .leftJoinAndSelect('userAdset.meta_adset_id', 'adSet')
+      .orderBy('userAdset.created_at', 'DESC');
     // .where('userAdset.user_campaign_id = :user_campaign_id', {
     //   user_campaign_id: query.user_campaign_id
     // });

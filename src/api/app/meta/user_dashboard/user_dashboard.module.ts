@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { DashboardAttributeController } from './dashboard_attribute.controller';
-import { DashboardAttributeService } from './dashboard_attribute.service';
+import { UserDashboardController } from './user_dashboard.controller';
+import { UserDashboardService } from './user_dashboard.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '@/api/auth/auth.module';
 import { DashboardAttributeVisibility } from '@/entity/dashboard-attribute-visibility.entity';
@@ -9,6 +9,9 @@ import { UserDashboard } from '@/entity/user-dashboard.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
+import { Campaign } from '@/entity/campaign.entity';
+import { AdSet } from '@/entity/ad-set.entity';
+import { Ad } from '@/entity/ad.entity';
 
 @Module({
   imports: [
@@ -18,11 +21,14 @@ import { UserAdsets } from '@/entity/user-adset.entity';
       UserDashboard,
       UserCampaign,
       UserAd,
-      UserAdsets
+      UserAdsets,
+      Campaign,
+      AdSet,
+      Ad
     ]),
     AuthModule
   ],
-  controllers: [DashboardAttributeController],
-  providers: [DashboardAttributeService]
+  controllers: [UserDashboardController],
+  providers: [UserDashboardService]
 })
-export class DashboardAttributeModule {}
+export class UserDashboardModule {}

@@ -174,6 +174,9 @@ export class Campaign extends BaseEntity {
   @Column({ name: 'updated_time', type: 'timestamptz', nullable: true })
   updated_time: Date;
 
+  @Column({ name: 'spend', type: 'decimal', nullable: true })
+  spend: string;
+
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;

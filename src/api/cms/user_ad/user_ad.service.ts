@@ -93,7 +93,8 @@ export class UserAdService {
     const qb = this.userAdRepository.createQueryBuilder('userAd');
     qb.leftJoinAndSelect('userAd.user_id', 'user')
       .leftJoinAndSelect('userAd.user_adset_id', 'userAdset')
-      .leftJoinAndSelect('userAd.meta_ad_id', 'ad');
+      .leftJoinAndSelect('userAd.meta_ad_id', 'ad')
+      .orderBy('userAd.created_at', 'DESC');
     // .where('userAd.user_adset_id = :user_adset_id', {
     //   user_adset_id: query.user_adset_id
     // });

@@ -20,7 +20,7 @@ export class UserService {
     if (!roleData) {
       throw new HttpException('Role not found', 404);
     }
-    if (!body.email || body.password) {
+    if (!body.email || !body.password) {
       throw new HttpException('Email or Password is required', 400);
     }
     let user: User = await this.userRepository.findOne({

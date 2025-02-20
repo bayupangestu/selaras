@@ -6,7 +6,8 @@ import {
   ClassSerializerInterceptor,
   UseInterceptors,
   UseGuards,
-  Req
+  Req,
+  Put
 } from '@nestjs/common';
 import { User } from '@/entity/user.entity';
 import { JwtAuthGuard } from './auth.guard';
@@ -33,5 +34,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   private refresh(@Req() { user }: Request): Promise<string | never> {
     return this.service.refresh(<User>user);
+  }
+
+  @Post('update-password')
+  private async updatePassword(@Body() body: any) {
+    return await this.service.updatePassword(body);
   }
 }

@@ -12,6 +12,7 @@ import { AdAccount } from '@/entity/ad-account.entity';
 import { CustomAudience } from '@/entity/custom-audience.entity';
 import { InsightListenerService } from '@/shared/subscribers/insight.subscriber';
 import { UserDashboard } from '@/entity/user-dashboard.entity';
+import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { UserDashboard } from '@/entity/user-dashboard.entity';
       Setting,
       AdAccount,
       CustomAudience,
-      UserDashboard
+      UserDashboard,
+      InsightBreakdown
     ])
   ],
   controllers: [CronController],

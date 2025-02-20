@@ -149,16 +149,25 @@ export class InsightListenerService
         dashboardData.impression = insight.impressions;
         dashboardData.clicks = insight.clicks;
         dashboardData.ctr = Number(insight.ctr);
-        dashboardData.post_engagement = insight.inline_post_engagement;
+        dashboardData.post_engagement = insight.post_engagement;
         dashboardData.views = null;
         dashboardData.thruplay = insight.cost_per_thruplay;
-        dashboardData.platform = insight.publisher_platform;
-        dashboardData.demography = {
-          age: insight.age,
-          gender: insight.gender
-        };
+        // dashboardData.platform = insight.publisher_platform;
+        // dashboardData.demography = {
+        //   age: insight.age,
+        //   gender: insight.gender
+        // };
         dashboardData.thumbnail_ads = null;
-        dashboardData.leads = null;
+        dashboardData.lead = insight.lead;
+        dashboardData.video_views = insight.video_views;
+        dashboardData.link_click = insight.link_click;
+        dashboardData.cost_per_click = insight.cost_per_click;
+        dashboardData.cost_per_mile = insight.cost_per_mile;
+        dashboardData.cost_per_view = insight.cost_per_view;
+        dashboardData.cost_per_lead = insight.cost_per_lead;
+        dashboardData.cost_per_engagement = insight.cost_per_engagement;
+        dashboardData.spend = insight.spend;
+        dashboardData.insight_breakdown_id = insight.insight_breakdown_id;
 
         // Simpan perubahan
         await userDashboardRepository.update(dashboardData.id, dashboardData);
@@ -175,17 +184,26 @@ export class InsightListenerService
         newDashboardData.post_engagement = insight.inline_post_engagement;
         newDashboardData.views = null;
         newDashboardData.thruplay = insight.cost_per_thruplay;
-        newDashboardData.platform = insight.publisher_platform;
-        newDashboardData.demography = {
-          age: insight.age,
-          gender: insight.gender
-        };
+        // newDashboardData.platform = insight.publisher_platform;
+        // newDashboardData.demography = {
+        //   age: insight.age,
+        //   gender: insight.gender
+        // };
         newDashboardData.thumbnail_ads = null;
-        newDashboardData.leads = null;
+        newDashboardData.lead = insight.lead;
+        newDashboardData.video_views = insight.video_views;
+        newDashboardData.link_click = insight.link_click;
+        newDashboardData.cost_per_click = insight.cost_per_click;
+        newDashboardData.cost_per_mile = insight.cost_per_mile;
+        newDashboardData.cost_per_view = insight.cost_per_view;
+        newDashboardData.cost_per_lead = insight.cost_per_lead;
+        newDashboardData.cost_per_engagement = insight.cost_per_engagement;
         newDashboardData.user_id = dashboardData.user_id;
         newDashboardData.campaign_type_id = dashboardData.campaign_type_id;
         newDashboardData.dashboard_attribute_visibility_id =
           dashboardData.dashboard_attribute_visibility_id;
+        newDashboardData.spend = insight.spend;
+        newDashboardData.insight_breakdown_id = insight.insight_breakdown_id;
 
         // Set relasi berdasarkan kondisi yang tersedia
         if (insight.campaign_id?.id) {

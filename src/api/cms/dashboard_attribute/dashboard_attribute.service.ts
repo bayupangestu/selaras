@@ -1,4 +1,6 @@
 import { DashboardAttributeVisibility } from '@/entity/dashboard-attribute-visibility.entity';
+import { UserAd } from '@/entity/user-ad.entity';
+import { UserAdsets } from '@/entity/user-adset.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { UserDashboard } from '@/entity/user-dashboard.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -15,7 +17,13 @@ export class DashboardAttributeService {
     private readonly dashboardAttributeRepository: Repository<DashboardAttributeVisibility>,
 
     @InjectRepository(UserCampaign)
-    private readonly userCampaignRepository: Repository<UserCampaign>
+    private readonly userCampaignRepository: Repository<UserCampaign>,
+
+    @InjectRepository(UserAdsets)
+    private readonly userAdsetRepository: Repository<UserAdsets>,
+
+    @InjectRepository(UserAd)
+    private readonly userAdRepository: Repository<UserAd>
   ) {}
 
   getEntityColumns(entity: any) {
@@ -154,157 +162,296 @@ export class DashboardAttributeService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      console.log(error, '<<<<<<');
       throw new HttpException(error.message, 400);
     } finally {
       await queryRunner.release();
     }
   }
 
-  //   async campaignUserDashboard(query: any) {
-  //     if (!query.user_campaign_id) {
-  //       throw new HttpException(
-  //         'user campaign id must be provided.',
-  //         HttpStatus.BAD_REQUEST
-  //       );
+  async campaignUserDashboard(query: any) {
+    const budgetData = await this.userCampaignRepository.find({
+      select: {
+        user_adsets: {
+          budget: true
+        }
+      },
+      relations: {
+        user_adsets: true
+      },
+      where: {
+        id: query.user_campaign_id
+      }
+    });
+
+    // Hitung total budget dari semua kampanye
+    const budget = budgetData.reduce((totalBudget, campaign) => {
+      const campaignBudget =
+        campaign.user_adsets?.reduce(
+          (sum, adset) => sum + (adset.budget || 0),
+          0
+        ) || 0;
+      return totalBudget + campaignBudget;
+    }, 0);
+
+    return this.getDashboardData(
+      query,
+      'user_campaign_id',
+      this.userCampaignRepository,
+      budget
+    );
+  }
+
+  async adSetDashboard(query: any) {
+    const budgetData = await this.userAdsetRepository.findOne({
+      select: ['budget'],
+      where: {
+        id: query.user_adset_id
+      }
+    });
+
+    return this.getDashboardData(
+      query,
+      'user_adset_id',
+      this.userAdsetRepository,
+      budgetData.budget
+    );
+  }
+
+  async adDashboard(query: any) {
+    const budgetData = await this.userAdRepository.findOne({
+      select: {
+        user_adset_id: {
+          budget: true
+        }
+      },
+      relations: {
+        user_adset_id: true
+      },
+      where: {
+        id: query.user_ad_id
+      }
+    });
+    return this.getDashboardData(
+      query,
+      'user_ad_id',
+      this.userAdRepository,
+      budgetData.user_adset_id.budget
+    );
+  }
+
+  // private async getDashboardData(
+  //   query: any,
+  //   idField: string,
+  //   repository: any,
+  //   budget: any
+  // ) {
+  //   if (!query[idField]) {
+  //     throw new HttpException(
+  //       `${idField.replace('_', ' ')} must be provided.`,
+  //       HttpStatus.BAD_REQUEST
+  //     );
+  //   }
+
+  //   const entityData = await repository.findOne({
+  //     where: { id: query[idField] }
+  //   });
+  //   if (!entityData) {
+  //     throw new HttpException(`${idField.replace('_id', '')} not found`, 404);
+  //   }
+
+  //   const userDashboard = await this.userDashboardRepository.find({
+  //     relations: {
+  //       dashboard_attribute_visibility_id: true,
+  //       campaign_type_id: true
+  //     },
+  //     where: { [idField]: { id: entityData.id } }
+  //   });
+
+  //   if (!userDashboard || userDashboard.length === 0) {
+  //     throw new HttpException(
+  //       `${idField.replace('_id', '')} dashboard not found`,
+  //       404
+  //     );
+  //   }
+
+  //   let startDateFilter = query.start_date
+  //     ? new Date(`${query.start_date}T00:00:00.000Z`)
+  //     : null;
+  //   let endDateFilter = query.end_date
+  //     ? new Date(`${query.end_date}T23:59:59.999Z`)
+  //     : null;
+
+  //   const filteredDashboard = userDashboard.filter((item) => {
+  //     const timePeriodDate = new Date(item.time_period);
+  //     return (
+  //       (!startDateFilter || timePeriodDate >= startDateFilter) &&
+  //       (!endDateFilter || timePeriodDate <= endDateFilter)
+  //     );
+  //   });
+
+  //   if (filteredDashboard.length === 0) {
+  //     return {
+  //       [idField]: entityData.id,
+  //       name: entityData.name,
+  //       start_date: null,
+  //       end_date: null,
+  //       data_card: {},
+  //       metrics: []
+  //     };
+  //   }
+
+  //   const allowedAttributes = new Set(
+  //     filteredDashboard[0].dashboard_attribute_visibility_id.attribute_name
+  //   );
+
+  //   const result: any = {
+  //     [idField]: entityData.id,
+  //     name: entityData.name,
+  //     start_date: null,
+  //     end_date: null
+  //   };
+
+  //   const aggregatedData: any = {};
+  //   const metrics: any[] = [];
+  //   let startDate = null;
+  //   let endDate = null;
+  //   let costPerResult: any;
+
+  //   filteredDashboard.forEach((item) => {
+  //     const timePeriod = item.time_period;
+  //     if (!startDate || new Date(timePeriod) < new Date(startDate)) {
+  //       startDate = timePeriod;
+  //     }
+  //     if (!endDate || new Date(timePeriod) > new Date(endDate)) {
+  //       endDate = timePeriod;
   //     }
 
-  //     const userCampaignData = await this.userCampaignRepository.findOne({
-  //       where: { id: query.user_campaign_id }
-  //     });
+  //     const campaignType = item.campaign_type_id?.name || 'Unknown';
 
-  //     if (!userCampaignData) {
-  //       throw new HttpException('User campaign not found', 404);
+  //     // Determine the metric based on campaign type
+  //     const metricKey = (() => {
+  //       switch (campaignType.toLowerCase()) {
+  //         case 'cpm':
+  //           costPerResult = item.cost_per_mile;
+  //           return 'reach';
+  //         case 'cpc':
+  //           costPerResult = item.cost_per_click;
+  //           return 'link_click';
+  //         case 'cpl':
+  //           costPerResult = item.cost_per_lead;
+  //           return 'lead';
+  //         case 'cpe':
+  //           costPerResult = item.cost_per_engagement;
+  //           return 'post_engagement';
+  //         case 'cpv':
+  //           costPerResult = item.cost_per_view;
+  //           return 'video_views';
+  //         default:
+  //           return null;
+  //       }
+  //     })();
+
+  //     if (metricKey) {
+  //       const existingMetric = metrics.find((m) => m.date === timePeriod);
+  //       if (existingMetric) {
+  //         existingMetric[metricKey] =
+  //           (existingMetric[metricKey] || 0) + (item[metricKey] || 0);
+  //       } else {
+  //         metrics.push({
+  //           date: timePeriod,
+  //           [metricKey]: item[metricKey] || 0
+  //         });
+  //       }
   //     }
 
-  //     const userDashboard = await this.userDashboardRepository.find({
-  //       relations: {
-  //         dashboard_attribute_visibility_id: true,
-  //         user_campaign_id: true
-  //       },
-  //       where: {
-  //         user_campaign_id: { id: userCampaignData.id }
+  //     Object.keys(item).forEach((key) => {
+  //       if (allowedAttributes.has(key)) {
+  //         if (typeof item[key] === 'number') {
+  //           aggregatedData[key] = (aggregatedData[key] || 0) + item[key];
+  //         } else {
+  //           aggregatedData[key] = item[key];
+  //         }
   //       }
   //     });
+  //   });
 
-  //     if (!userDashboard || userDashboard.length === 0) {
-  //       throw new HttpException('User dashboard not found', 404);
-  //     }
+  //   delete aggregatedData.time_period;
+  //   result.start_date = startDate;
+  //   result.end_date = endDate;
 
-  //     // **Langkah 1: Dapatkan daftar atribut yang boleh ditampilkan**
-  //     const allowedAttributes = new Set(userDashboard[0].dashboard_attribute_visibility_id.attribute_name);
+  //   // Calculate amount spend
 
-  //     // **Langkah 2: Proses data untuk digabungkan**
-  //     const result = {
-  //         user_campaign_id: userCampaignData.id,
-  //         name: userCampaignData.name,
-  //         budget: userCampaignData.budget,
-  //         start_date: null,
-  //         end_date: null,
-  //     };
+  //   // Menambahkan console.log untuk debugging
+  //   console.log('--- Debugging Calculation ---');
+  //   console.log('Cost Per Result:', costPerResult);
+  //   console.log('Budget:', budget);
 
-  //     // Menyimpan nilai yang akan dijumlahkan
-  //     const aggregatedData: any = {};
-  //     const jsonFields: string[] = ["demography"]; // Field JSON yang perlu digabungkan (thruplay diproses terpisah)
-  //     let startDate: string | null = null;
-  //     let endDate: string | null = null;
+  //   // Menghitung resultValue
+  //   console.log('Calculating resultValue...');
+  //   console.log(
+  //     'Formula: resultValue = costPerResult + costPerResult * budget'
+  //   );
+  //   const resultValue = costPerResult + costPerResult * budget;
+  //   console.log('resultValue:', resultValue);
 
-  //     // **Tambahkan struktur untuk menyimpan `thruplay` sebagai objek agregat**
-  //     const aggregatedThruplay: Record<string, number> = {};
+  //   // Menghitung amountSpend
+  //   console.log('Calculating amountSpend...');
+  //   console.log('Formula: amountSpend = costPerResult * resultValue');
+  //   const amountSpend = costPerResult * resultValue;
+  //   console.log('amountSpend:', amountSpend);
 
-  //     userDashboard.forEach((item) => {
-  //         const timePeriod = item.time_period;
+  //   console.log('--- Final Results ---');
+  //   console.log('resultValue:', resultValue);
+  //   console.log('amountSpend:', amountSpend);
 
-  //         // Update start_date & end_date
-  //         if (!startDate || new Date(timePeriod) < new Date(startDate)) {
-  //             startDate = timePeriod;
-  //         }
-  //         if (!endDate || new Date(timePeriod) > new Date(endDate)) {
-  //             endDate = timePeriod;
-  //         }
+  //   const formattedAmountSpend = new Intl.NumberFormat('id-ID', {
+  //     style: 'currency',
+  //     currency: 'IDR'
+  //   }).format(amountSpend);
 
-  //         // Looping hanya untuk atribut yang diizinkan
-  //         Object.keys(item).forEach((key) => {
-  //             if (allowedAttributes.has(key)) {
-  //                 if (typeof item[key] === "number") {
-  //                     // Jika angka, jumlahkan
-  //                     aggregatedData[key] = (aggregatedData[key] || 0) + item[key];
-  //                 } else if (jsonFields.includes(key) && Array.isArray(item[key])) {
-  //                     // Jika JSON/Array, gabungkan
-  //                     aggregatedData[key] = [...(aggregatedData[key] || []), ...item[key]];
-  //                 } else if (key === "thruplay" && Array.isArray(item[key])) {
-  //                     // **Khusus untuk thruplay, jumlahkan berdasarkan action_type**
-  //                     item[key].forEach((action) => {
-  //                         const actionType = action.action_type;
-  //                         const value = parseFloat(action.value) || 0;
-  //                         aggregatedThruplay[actionType] = (aggregatedThruplay[actionType] || 0) + value;
-  //                     });
-  //                 } else {
-  //                     // Jika bukan angka atau JSON, gunakan nilai terakhir
-  //                     aggregatedData[key] = item[key];
-  //                 }
-  //             }
-  //         });
-  //     });
+  //   const data_card = {
+  //     ...aggregatedData,
+  //     amount_spend: formattedAmountSpend
+  //   };
 
-  //     // Set start_date & end_date
-  //     result.start_date = startDate;
-  //     result.end_date = endDate;
-
-  //     // Konversi aggregatedThruplay menjadi array JSON
-  //     aggregatedData["thruplay"] = Object.keys(aggregatedThruplay).map((actionType) => ({
-  //         action_type: actionType,
-  //         value: aggregatedThruplay[actionType].toFixed(6) // Pastikan hasil dalam format string dengan 6 desimal
-  //     }));
-
-  //     return { ...result, ...aggregatedData };
+  //   return { ...result, data_card, metrics };
   // }
 
-  async campaignUserDashboard(query: any) {
-    if (!query.user_campaign_id) {
+  private async getDashboardData(
+    query: any,
+    idField: string,
+    repository: any,
+    budget: any
+  ) {
+    if (!query[idField]) {
       throw new HttpException(
-        'user campaign id must be provided.',
+        `${idField.replace('_', ' ')} must be provided.`,
         HttpStatus.BAD_REQUEST
       );
     }
 
-    const userCampaignData = await this.userCampaignRepository.findOne({
-      where: { id: query.user_campaign_id }
+    const entityData = await repository.findOne({
+      where: { id: query[idField] }
     });
-
-    if (!userCampaignData) {
-      throw new HttpException('User campaign not found', 404);
+    if (!entityData) {
+      throw new HttpException(`${idField.replace('_id', '')} not found`, 404);
     }
 
-    const test = await this.userDashboardRepository.find({
-      relations: {
-        dashboard_attribute_visibility_id: true,
-        user_campaign_id: true
-      },
-      where: {
-        user_campaign_id: { id: userCampaignData.id }
-      },
-      order: {
-        time_period: 'asc'
-      }
-    });
-
-    return test;
     const userDashboard = await this.userDashboardRepository.find({
       relations: {
         dashboard_attribute_visibility_id: true,
-        user_campaign_id: true
+        campaign_type_id: true
       },
-      where: {
-        user_campaign_id: { id: userCampaignData.id }
-      }
+      where: { [idField]: { id: entityData.id } }
     });
 
     if (!userDashboard || userDashboard.length === 0) {
-      throw new HttpException('User dashboard not found', 404);
+      throw new HttpException(
+        `${idField.replace('_id', '')} dashboard not found`,
+        404
+      );
     }
 
-    // **Fix: Pastikan filter tanggal mencakup satu hari penuh**
     let startDateFilter = query.start_date
       ? new Date(`${query.start_date}T00:00:00.000Z`)
       : null;
@@ -314,52 +461,42 @@ export class DashboardAttributeService {
 
     const filteredDashboard = userDashboard.filter((item) => {
       const timePeriodDate = new Date(item.time_period);
-      console.log(startDateFilter, endDateFilter);
-
       return (
         (!startDateFilter || timePeriodDate >= startDateFilter) &&
         (!endDateFilter || timePeriodDate <= endDateFilter)
       );
     });
 
-    // **Jika tidak ada data, kembalikan semua `null`**
     if (filteredDashboard.length === 0) {
       return {
-        user_campaign_id: userCampaignData.id,
-        name: userCampaignData.name,
-        budget: userCampaignData.budget,
+        [idField]: entityData.id,
+        name: entityData.name,
         start_date: null,
         end_date: null,
-        reach: null,
-        impression: null,
-        clicks: null,
-        ctr: null,
-        post_engagement: null,
-        thruplay: null
+        data_card: {},
+        metrics: []
       };
     }
 
-    // **Proses Agregasi Data**
     const allowedAttributes = new Set(
       filteredDashboard[0].dashboard_attribute_visibility_id.attribute_name
     );
+
     const result: any = {
-      user_campaign_id: userCampaignData.id,
-      name: userCampaignData.name,
-      budget: userCampaignData.budget,
+      [idField]: entityData.id,
+      name: entityData.name,
       start_date: null,
       end_date: null
     };
 
     const aggregatedData: any = {};
-    const jsonFields: string[] = ['demography'];
+    const metrics: any[] = [];
     let startDate = null;
     let endDate = null;
-    const aggregatedThruplay: Record<string, number> = {};
+    let costPerResult: any;
 
     filteredDashboard.forEach((item) => {
       const timePeriod = item.time_period;
-
       if (!startDate || new Date(timePeriod) < new Date(startDate)) {
         startDate = timePeriod;
       }
@@ -367,22 +504,43 @@ export class DashboardAttributeService {
         endDate = timePeriod;
       }
 
+      const campaignType = item.campaign_type_id?.name || 'Unknown';
+
+      // Determine the metric based on campaign type
+      const metricKey = (() => {
+        switch (campaignType.toLowerCase()) {
+          case 'cpm':
+            costPerResult = item.cost_per_mile;
+            return 'reach';
+          case 'cpc':
+            costPerResult = item.cost_per_click;
+            return 'link_click';
+          case 'cpl':
+            costPerResult = item.cost_per_lead;
+            return 'lead';
+          case 'cpe':
+            costPerResult = item.cost_per_engagement;
+            return 'post_engagement';
+          case 'cpv':
+            costPerResult = item.cost_per_view;
+            return 'video_views';
+          default:
+            return null;
+        }
+      })();
+
+      if (metricKey) {
+        metrics.push({
+          date: timePeriod,
+          name: metricKey,
+          value: item[metricKey] || 0
+        });
+      }
+
       Object.keys(item).forEach((key) => {
         if (allowedAttributes.has(key)) {
           if (typeof item[key] === 'number') {
             aggregatedData[key] = (aggregatedData[key] || 0) + item[key];
-          } else if (jsonFields.includes(key) && Array.isArray(item[key])) {
-            aggregatedData[key] = [
-              ...(aggregatedData[key] || []),
-              ...item[key]
-            ];
-          } else if (key === 'thruplay' && Array.isArray(item[key])) {
-            item[key].forEach((action) => {
-              const actionType = action.action_type;
-              const value = parseFloat(action.value) || 0;
-              aggregatedThruplay[actionType] =
-                (aggregatedThruplay[actionType] || 0) + value;
-            });
           } else {
             aggregatedData[key] = item[key];
           }
@@ -390,98 +548,26 @@ export class DashboardAttributeService {
       });
     });
 
+    delete aggregatedData.time_period;
     result.start_date = startDate;
     result.end_date = endDate;
-    aggregatedData['thruplay'] = Object.keys(aggregatedThruplay).map(
-      (actionType) => ({
-        action_type: actionType,
-        value: aggregatedThruplay[actionType].toFixed(6)
-      })
-    );
 
-    return { ...result, ...aggregatedData };
-  }
+    const resultValue = costPerResult + costPerResult * aggregatedData.spend;
 
-  async adSetDashboard(query: any) {
-    if (!query.user_adset_id) {
-      throw new HttpException(
-        'user adset id must be provided.',
-        HttpStatus.BAD_REQUEST
-      );
-    }
+    const amountSpend =
+      resultValue * metrics.reduce((sum, metric) => sum + metric.value, 0);
 
-    const adSetDashboard = await this.userDashboardRepository.findOne({
-      relations: {
-        dashboard_attribute_visibility_id: true,
-        user_adset_id: true
-      },
-      where: {
-        user_adset_id: { id: query.user_adset_id }
-      }
-    });
+    // const formattedAmountSpend = new Intl.NumberFormat('id-ID', {
+    //   style: 'currency',
+    //   currency: 'IDR'
+    // }).format(amountSpend);
 
-    if (!adSetDashboard) {
-      throw new HttpException('Ad set dashboard not found', 404);
-    }
+    const data_card = {
+      ...aggregatedData,
+      amount_spend: amountSpend
+    };
 
-    // Extract visible attributes
-    const visibleAttributes =
-      adSetDashboard.dashboard_attribute_visibility_id.attribute_name;
-
-    // Filter adSetDashboard object based on visibleAttributes
-    const filteredDashboard = Object.keys(adSetDashboard)
-      .filter(
-        (key) =>
-          visibleAttributes.includes(key) ||
-          ['id', 'created_at', 'updated_at'].includes(key)
-      )
-      .reduce((obj, key) => {
-        obj[key] = adSetDashboard[key];
-        return obj;
-      }, {});
-
-    return filteredDashboard;
-  }
-
-  async adDashboard(query: any) {
-    if (!query.user_ad_id) {
-      throw new HttpException(
-        'user ad id must be provided.',
-        HttpStatus.BAD_REQUEST
-      );
-    }
-
-    const adDashboard = await this.userDashboardRepository.findOne({
-      relations: {
-        dashboard_attribute_visibility_id: true,
-        user_ad_id: true
-      },
-      where: {
-        user_ad_id: { id: query.user_ad_id }
-      }
-    });
-
-    if (!adDashboard) {
-      throw new HttpException('Ad dashboard not found', 404);
-    }
-
-    // Extract visible attributes
-    const visibleAttributes =
-      adDashboard.dashboard_attribute_visibility_id.attribute_name;
-
-    // Filter adDashboard object based on visibleAttributes
-    const filteredDashboard = Object.keys(adDashboard)
-      .filter(
-        (key) =>
-          visibleAttributes.includes(key) ||
-          ['id', 'created_at', 'updated_at'].includes(key)
-      )
-      .reduce((obj, key) => {
-        obj[key] = adDashboard[key];
-        return obj;
-      }, {});
-
-    return filteredDashboard;
+    return { ...result, data_card, metrics };
   }
 
   async listCustomDashboard(query: any) {
@@ -493,10 +579,9 @@ export class DashboardAttributeService {
       this.dashboardAttributeRepository.createQueryBuilder(
         'dashboardAttribute'
       );
-    qb.leftJoinAndSelect(
-      'dashboardAttribute.user_campaign_id',
-      'user_campaign'
-    );
+    qb.leftJoinAndSelect('dashboardAttribute.user_campaign_id', 'user_campaign')
+      .leftJoinAndSelect('user_campaign.campaign_type_id', 'campaign_type')
+      .orderBy('dashboardAttribute.created_at', 'DESC');
 
     qb.skip(skip).take(query.pageSize);
 
@@ -553,7 +638,6 @@ export class DashboardAttributeService {
       body.name || customDashboardData.attribute_name;
     customDashboardData.user_campaign_id =
       customDashboardData.user_campaign_id || body.user_campaign_id;
-    console.log(customDashboardData, '<<<<<');
 
     await this.dashboardAttributeRepository.save(customDashboardData);
     return {

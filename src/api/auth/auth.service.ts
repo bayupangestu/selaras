@@ -85,4 +85,15 @@ export class AuthService {
 
     return this.helper.generateToken(user);
   }
+
+  public async updatePassword(body: any) {
+    const user: User = await this.repository.findOne({
+      relations: {
+        role_id: true
+      },
+      where: { email: body.email.toLowerCase() }
+    });
+    user.password = bcryptHasPassword(body.password);
+    await this.repository.save(user);
+  }
 }

@@ -84,7 +84,7 @@ async function seed() {
         last_login_at: null,
         access_token: null,
         start_at: new Date(),
-        end_at: null
+        end_at: new Date('9999-12-31')
       });
       await userRepository.save(newUser);
       console.log('Admin user seeded successfully');

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CronService } from './cron.service';
 
-@Controller('app/cron')
+@Controller(['app/cron', 'cms/sync'])
 export class CronController {
   @Inject(CronService)
   private readonly cronService: CronService;

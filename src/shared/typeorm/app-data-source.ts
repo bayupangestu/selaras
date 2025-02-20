@@ -24,6 +24,7 @@ import { UserAdsets } from '../../entity/user-adset.entity';
 import { UserCampaign } from '../../entity/user-campaign.entity';
 import { UserProject } from '../../entity/user-project.entity';
 import { User } from '../../entity/user.entity';
+import { InsightBreakdown } from '../../entity/insight-breakdown.entity';
 config();
 
 export const AppDataSource = new DataSource({
@@ -58,7 +59,8 @@ export const AppDataSource = new DataSource({
     UserCampaign,
     UserDashboard,
     UserProject,
-    User
+    User,
+    InsightBreakdown
   ],
   subscribers: [InsightListenerService],
   synchronize: true,

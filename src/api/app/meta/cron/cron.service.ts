@@ -4,6 +4,7 @@ import { AdSet } from '@/entity/ad-set.entity';
 import { Ad } from '@/entity/ad.entity';
 import { Campaign } from '@/entity/campaign.entity';
 import { CustomAudience } from '@/entity/custom-audience.entity';
+import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
 import { Insight } from '@/entity/insight.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -34,7 +35,10 @@ export class CronService {
     private readonly insightRepository: Repository<Insight>,
 
     @InjectRepository(CustomAudience)
-    private readonly customAudienceRepository: Repository<CustomAudience>
+    private readonly customAudienceRepository: Repository<CustomAudience>,
+
+    @InjectRepository(InsightBreakdown)
+    private readonly insightBreakdownRepository: Repository<InsightBreakdown>
   ) {}
 
   private async initializeFB(): Promise<FB> {
@@ -123,7 +127,7 @@ export class CronService {
     for (const account of accountData) {
       try {
         let allCampaigns = [];
-        let nextPage = `/act_${account.account_id}/campaigns?fields=id,name,account_id,adlabels,bid_strategy,boosted_object_id,brand_lift_studies,budget_rebalance_flag,budget_remaining,buying_type,campaign_group_active_time,can_create_brand_lift_study,can_use_spend_cap,configured_status,created_time,daily_budget,effective_status,has_secondary_skadnetwork_reporting,is_budget_schedule_enabled,is_skadnetwork_attribution,issues_info,last_budget_toggling_time,lifetime_budget,objective,pacing_type,primary_attribution,promoted_object,smart_promotion_type,source_campaign,source_campaign_id,special_ad_categories,special_ad_category,special_ad_category_country,spend_cap,start_time,status,stop_time,topline_id,updated_time&date_preset=maximum&limit=1000`;
+        let nextPage = `/act_${account.account_id}/campaigns?fields=id,name,account_id,adlabels,bid_strategy,boosted_object_id,brand_lift_studies,budget_rebalance_flag,budget_remaining,buying_type,campaign_group_active_time,can_create_brand_lift_study,can_use_spend_cap,configured_status,created_time,daily_budget,effective_status,has_secondary_skadnetwork_reporting,is_budget_schedule_enabled,is_skadnetwork_attribution,issues_info,last_budget_toggling_time,lifetime_budget,objective,pacing_type,primary_attribution,promoted_object,smart_promotion_type,source_campaign,source_campaign_id,special_ad_categories,special_ad_category,special_ad_category_country,spend_cap,start_time,status,stop_time,topline_id,updated_time&date_preset=this_month&limit=1000`;
 
         while (nextPage) {
           const response = await new Promise<any>((resolve, reject) => {
@@ -279,7 +283,7 @@ export class CronService {
             const response = await new Promise<any>((resolve, reject) => {
               const params = {
                 fields,
-                date_preset: 'maximum',
+                date_preset: 'this_month',
                 limit: 200
               };
 
@@ -429,7 +433,7 @@ export class CronService {
             const response = await new Promise<any>((resolve, reject) => {
               const params = {
                 fields,
-                date_preset: 'maximum',
+                date_preset: 'this_month',
                 limit: 200
               };
 
@@ -474,30 +478,33 @@ export class CronService {
           adData.ad_meta_id = adData.id;
           delete adData.id;
 
-          if (!existingAd) {
-            const adSetRecord = await this.adSetRepository.findOneBy({
+          const adSetRecord = await this.adSetRepository.findOne({
+            relations: {
+              campaign: true
+            },
+            where: {
               adset_meta_id: adData.adset_id
-            });
-
+            }
+          });
+          if (!adSetRecord) {
+            throw new HttpException(
+              `AdSet ${adData.adset_id} Tidak Ditemukan`,
+              HttpStatus.NOT_FOUND
+            );
+          }
+          if (!existingAd) {
             if (!adSetRecord) {
               delete adData.adset_id;
             }
 
             adData.adSet = adSetRecord ? adSetRecord : null;
+            adData.campaign_id = adSetRecord.campaign;
             await this.adRepository.save(adData);
           } else {
-            const adSetRecord = await this.adSetRepository.findOneBy({
-              adset_meta_id: adData.adset_id
-            });
+            adData.ad_set_id = adSetRecord;
+            adData.campaign_id = adSetRecord.campaign;
+            console.log(adData);
 
-            if (!adSetRecord) {
-              throw new HttpException(
-                `AdSet ${adData.adset_id} Tidak Ditemukan`,
-                HttpStatus.NOT_FOUND
-              );
-            }
-
-            adData.adSet = adSetRecord;
             await this.adRepository.update(
               { ad_meta_id: adData.ad_meta_id },
               {
@@ -520,23 +527,23 @@ export class CronService {
     return result;
   }
 
-  async fetchInsightsWithRetry(path, dateRange, fieldChunk) {
+  async fetchInsightsWithRetry(path, dateRange, fieldChunk, breakdowns) {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     let attempts = 0;
     const maxAttempts = 3;
     while (attempts < maxAttempts) {
       try {
         const fb = await this.initializeFB();
-
         const response: any = await new Promise((resolve, reject) => {
           fb.api(
             path,
             'GET',
             {
-              fields: fieldChunk.join(','),
+              // fields: fieldChunk.join(','),
+              fields: fieldChunk,
               // date_preset: 'yesterday',
-              time_range: { since: '2023-12-14', until: '2023-12-14' },
-              // breakdowns,
+              time_range: { since: '2024-11-22', until: '2024-11-22' },
+              breakdowns,
               limit: 100
             },
             (res) => {
@@ -571,106 +578,203 @@ export class CronService {
     }
   }
 
-  // Helper function to fetch insights for an entity
-  async fetchInsightsForEntity(path, dateRange, fieldChunks) {
-    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    let mergedData = {};
+  // async fetchInsightsForEntity(path, dateRange, fieldChunks) {
+  //   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  //   let mergedData = {};
 
-    for (const fieldChunk of fieldChunks) {
-      await delay(1000); // Rate limiting delay between chunks
-      const chunkData = await this.fetchInsightsWithRetry(
-        path,
-        dateRange,
-        fieldChunk
-        // 'publisher_platform'
-      );
+  //   for (const fieldChunk of fieldChunks) {
+  //     await delay(1000);
+  //     const chunkData = await this.fetchInsightsWithRetry(
+  //       path,
+  //       dateRange,
+  //       fieldChunk,
+  //       'age,gender'
+  //     );
 
-      if (chunkData && chunkData[0]) {
-        mergedData = {
-          ...mergedData,
-          ...chunkData[0]
-        };
-      } else {
-        return null;
-      }
-    }
-    return mergedData;
-  }
+  //     if (chunkData && chunkData[0]) {
+  //       mergedData = {
+  //         ...mergedData,
+  //         ...chunkData[0]
+  //       };
+  //     } else {
+  //       return null;
+  //     }
+  //   }
+  //   return mergedData;
+  // }
 
-  async fetchInsightsForEntityAgeAndGender(path, dateRange, fieldChunks) {
-    // const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    // let mergedData = {};
-    // for (const fieldChunk of fieldChunks) {
-    //   await delay(1000); // Rate limiting delay between chunks
-    //   const chunkData = await this.fetchInsightsWithRetry(
-    //     path,
-    //     dateRange,
-    //     fieldChunk,
-    //     'age,gender'
-    //   );
-    //   if (chunkData && chunkData[0]) {
-    //     mergedData = {
-    //       ...mergedData,
-    //       ...chunkData[0]
-    //     };
-    //   } else {
-    //     return null;
-    //   }
-    // }
-    // return mergedData;
-  }
+  // async fetchInsightsForEntity(path, dateRange, fieldChunks, breakdowns?: any) {
+  //   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  //   let mergedData: any[] = [];
 
-  // Helper function to save insights to the database
-  async saveInsights(insightData, referenceType, referenceId) {
+  //   // for (const fieldChunk of fieldChunks) {
+  //   await delay(1000);
+
+  //   const chunkData = await this.fetchInsightsWithRetry(
+  //     path,
+  //     dateRange,
+  //     fieldChunks,
+  //     breakdowns
+  //   );
+
+  //   if (chunkData && chunkData.length > 0) {
+  //     return chunkData;
+  //   } else {
+  //     return null;
+  //   }
+  //   // }
+  //   return mergedData;
+  // }
+
+  async saveInsights(insightDataArray, referenceType, referenceId) {
     try {
-      if (Object.keys(insightData).length > 0) {
-        insightData.reference_type = referenceType;
-        insightData.referenceId = referenceId;
-        insightData.date = insightData.date_start;
-        delete insightData.date_start;
+      if (!Array.isArray(insightDataArray)) {
+        insightDataArray = [insightDataArray];
+      }
+      for (const insightData of insightDataArray) {
+        if (Object.keys(insightData).length > 0) {
+          insightData.reference_type = referenceType;
+          insightData.referenceId = referenceId;
+          insightData.date = insightData.date_start;
+          delete insightData.date_start;
 
-        switch (referenceType) {
-          case 'ad_account':
-            insightData.ad_account_id =
-              await this.adAccountRepository.findOneBy({
+          switch (referenceType) {
+            case 'ad_account':
+              insightData.ad_account_id =
+                await this.adAccountRepository.findOneBy({
+                  id: referenceId
+                });
+              break;
+            case 'campaign':
+              insightData.campaign_id = await this.campaignRepository.findOneBy(
+                {
+                  id: referenceId
+                }
+              );
+              break;
+            case 'ad_set':
+              insightData.adset_id = await this.adSetRepository.findOneBy({
                 id: referenceId
               });
-            break;
-          case 'campaign':
-            insightData.campaign_id = await this.campaignRepository.findOneBy({
-              id: referenceId
+              break;
+            case 'ad':
+              insightData.ad_id = await this.adRepository.findOneBy({
+                id: referenceId
+              });
+              delete insightData.ad_id.tracking_specs;
+              break;
+            default:
+              throw new HttpException(
+                'Invalid reference type',
+                HttpStatus.BAD_REQUEST
+              );
+          }
+          const actions = insightData?.actions?.reduce((acc, action) => {
+            acc[action.action_type] = parseInt(action.value, 10);
+            return acc;
+          }, {});
+
+          const costPerAction = insightData?.cost_per_action_type?.reduce(
+            (acc, action) => {
+              acc[action.action_type] = parseFloat(action.value);
+              return acc;
+            },
+            {}
+          );
+
+          insightData.link_click = actions?.link_click || 0;
+          insightData.post_engagement = actions?.post_engagement || 0;
+          insightData.video_views = actions?.video_view || 0;
+          insightData.lead = actions?.lead || 0;
+
+          // CPM - Cost per 1,000 Reach
+          // CPM - Cost per Mile
+          insightData.cost_per_mile =
+            insightData.spend && insightData.reach
+              ? Math.ceil(
+                  (parseFloat(insightData.spend) /
+                    parseFloat(insightData.reach)) *
+                    1000
+                )
+              : 0;
+
+          // CPE - Cost per Engagement
+          const totalEngagement =
+            (actions?.post_engagement || 0) +
+            (actions?.page_engagement || 0) +
+            (actions?.like || 0) +
+            (actions?.comment || 0);
+          insightData.cost_per_engagement =
+            totalEngagement > 0
+              ? Math.ceil(parseFloat(insightData.spend) / totalEngagement)
+              : 0;
+
+          // CPV - Cost per View
+          insightData.cost_per_view =
+            actions?.video_view > 0
+              ? Math.ceil(parseFloat(insightData.spend) / actions?.video_view)
+              : 0;
+
+          // CPC - Cost per Click
+          insightData.cost_per_click =
+            actions?.link_click > 0
+              ? Math.ceil(parseFloat(insightData.spend) / actions?.link_click)
+              : 0;
+
+          // CPL - Cost per Lead
+          insightData.cost_per_lead =
+            actions?.lead > 0
+              ? Math.ceil(parseFloat(insightData.spend) / actions?.lead)
+              : 0;
+
+          // Menyimpan breakdowns jika ada
+          if (
+            insightData.gender ||
+            insightData.age ||
+            insightData.country ||
+            insightData.region ||
+            insightData.publisher_platform ||
+            insightData.device_platform
+          ) {
+            const breakdown = await this.insightBreakdownRepository.findOne({
+              where: {
+                gender: insightData.gender,
+                age: insightData.age,
+                country: insightData.country,
+                region: insightData.region,
+                publisher_platform: insightData.publisher_platform,
+                device_platform: insightData.device_platform
+              }
             });
-            break;
-          case 'ad_set':
-            insightData.adset_id = await this.adSetRepository.findOneBy({
-              id: referenceId
-            });
-            break;
-          case 'ad':
-            insightData.ad_id = await this.adRepository.findOneBy({
-              id: referenceId
-            });
-            delete insightData.ad_id.tracking_specs;
-            break;
-          default:
-            throw new HttpException(
-              'Invalid reference type',
-              HttpStatus.BAD_REQUEST
-            );
+            if (!breakdown) {
+              const newBreakdown = new InsightBreakdown();
+              newBreakdown.gender = insightData.gender;
+              newBreakdown.age = insightData.age;
+              newBreakdown.country = insightData.country;
+              newBreakdown.region = insightData.region;
+              newBreakdown.publisher_platform = insightData.publisher_platform;
+              newBreakdown.device_platform = insightData.device_platform;
+              const result = await this.insightBreakdownRepository.save(
+                newBreakdown
+              );
+              insightData.insight_breakdown_id = result;
+            } else {
+              insightData.insight_breakdown_id = breakdown;
+            }
+          }
+          // console.log(insightData);
+          await this.insightRepository.save(insightData);
         }
-        await this.insightRepository.save(insightData);
       }
     } catch (err) {
-      console.log(err, 'err save insight');
+      // console.log(err, 'err save insight');
       throw new HttpException(err.message, 400);
     }
   }
 
-  // Process insights for AdAccount
   async processAdAccountInsights(account, dateRange, fieldChunks) {
     const path = `/act_${account.account_id}/insights`;
     console.log(path);
-
     const insights = await this.fetchInsightsForEntity(
       path,
       dateRange,
@@ -680,90 +784,143 @@ export class CronService {
       return null;
     }
     await this.saveInsights(insights, 'ad_account', account.id);
-
-    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
-    //   path,
-    //   dateRange,
-    //   fieldChunks
-    // );
-
-    // if (insightAgeGender === null) {
-    //   return null;
-    // }
-    // await this.saveInsights(insightAgeGender, 'ad_account', account.id);
   }
 
-  // Process insights for Campaign
+  // async processCampaignInsights(campaign, dateRange, fieldChunks) {
+  //   const path = `/${campaign.campaign_meta_id}/insights`;
+  //   const insightsWithBreakdownGA = await this.fetchInsightsForEntity(
+  //     path,
+  //     dateRange,
+  //     fieldChunks,
+  //     'gender,age'
+  //   );
+  //   if (insightsWithBreakdownGA === null) {
+  //     return null;
+  //   }
+  //   for (const insightGa of insightsWithBreakdownGA) {
+  //     await this.saveInsights(insightGa, 'campaign', campaign.id);
+  //   }
+
+  //   const insightsWithBreakdownCR = await this.fetchInsightsForEntity(
+  //     path,
+  //     dateRange,
+  //     fieldChunks,
+  //     ['country', 'region']
+  //   );
+  //   if (insightsWithBreakdownCR === null) {
+  //     return null;
+  //   }
+  //   for (const insightCR of insightsWithBreakdownCR) {
+  //     await this.saveInsights(insightCR, 'campaign', campaign.id);
+  //   }
+
+  //   const insightsWithBreakdownPD = await this.fetchInsightsForEntity(
+  //     path,
+  //     dateRange,
+  //     fieldChunks,
+  //     ['publisher_platform', 'device_platform']
+  //   );
+  //   if (insightsWithBreakdownPD === null) {
+  //     return null;
+  //   }
+  //   for (const insightPD of insightsWithBreakdownPD) {
+  //     await this.saveInsights(insightPD, 'campaign', campaign.id);
+  //   }
+  // }
+
+  // async processAdSetInsights(adSet, dateRange, fieldChunks) {
+  //   const path = `/${adSet.adset_meta_id}/insights`;
+  //   const insights = await this.fetchInsightsForEntity(
+  //     path,
+  //     dateRange,
+  //     fieldChunks
+  //   );
+  //   if (insights === null) {
+  //     return null;
+  //   }
+  //   await this.saveInsights(insights, 'ad_set', adSet.id);
+  //   // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
+  //   //   path,
+  //   //   dateRange,
+  //   //   fieldChunks
+  //   // );
+  //   // if (insightAgeGender === null) {
+  //   //   return null;
+  //   // }
+  //   // await this.saveInsights(insightAgeGender, 'ad_set', adSet.id);
+  // }
+
+  // async processAdInsights(ad, dateRange, fieldChunks) {
+  //   const path = `${ad.ad_meta_id}/insights`;
+  //   const insights = await this.fetchInsightsForEntity(
+  //     path,
+  //     dateRange,
+  //     fieldChunks
+  //   );
+  //   if (insights === null) {
+  //     return null;
+  //   }
+  //   await this.saveInsights(insights, 'ad', ad.id);
+  // }
+
+  async fetchInsightsForEntity(path, dateRange, fieldChunks, breakdowns?: any) {
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    await delay(1000);
+
+    const chunkData = await this.fetchInsightsWithRetry(
+      path,
+      dateRange,
+      fieldChunks,
+      breakdowns
+    );
+
+    return chunkData && chunkData.length > 0 ? chunkData : null;
+  }
+
+  async processInsights(entityType, entity, dateRange, fieldChunks) {
+    const path = `/${entity[`${entityType}_meta_id`]}/insights`;
+
+    const breakdownCombinations = [
+      'gender,age',
+      'country,region',
+      'publisher_platform,device_platform'
+    ];
+
+    for (const breakdown of breakdownCombinations) {
+      console.log(breakdown);
+
+      const insights = await this.fetchInsightsForEntity(
+        path,
+        dateRange,
+        fieldChunks,
+        breakdown
+      );
+      if (insights === null) {
+        return null;
+      }
+      for (const insight of insights) {
+        await this.saveInsights(insight, entityType, entity.id);
+      }
+    }
+  }
+
   async processCampaignInsights(campaign, dateRange, fieldChunks) {
-    const path = `/${campaign.campaign_meta_id}/insights`;
-    const insights = await this.fetchInsightsForEntity(
-      path,
+    return await this.processInsights(
+      'campaign',
+      campaign,
       dateRange,
       fieldChunks
     );
-    if (insights === null) {
-      return null;
-    }
-    await this.saveInsights(insights, 'campaign', campaign.id);
-
-    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
-    //   path,
-    //   dateRange,
-    //   fieldChunks
-    // );
-    // if (insightAgeGender === null) {
-    //   return null;
-    // }
-    // await this.saveInsights(insightAgeGender, 'campaign', campaign.id);
   }
 
-  // Process insights for AdSet
   async processAdSetInsights(adSet, dateRange, fieldChunks) {
-    const path = `/${adSet.adset_meta_id}/insights`;
-    const insights = await this.fetchInsightsForEntity(
-      path,
-      dateRange,
-      fieldChunks
-    );
-    if (insights === null) {
-      return null;
-    }
-    await this.saveInsights(insights, 'ad_set', adSet.id);
-    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
-    //   path,
-    //   dateRange,
-    //   fieldChunks
-    // );
-    // if (insightAgeGender === null) {
-    //   return null;
-    // }
-    // await this.saveInsights(insightAgeGender, 'ad_set', adSet.id);
+    return await this.processInsights('adset', adSet, dateRange, fieldChunks);
   }
 
-  // Process insights for Ad
   async processAdInsights(ad, dateRange, fieldChunks) {
-    const path = `${ad.ad_meta_id}/insights`;
-    const insights = await this.fetchInsightsForEntity(
-      path,
-      dateRange,
-      fieldChunks
-    );
-    if (insights === null) {
-      return null;
-    }
-    await this.saveInsights(insights, 'ad', ad.id);
-    // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
-    //   path,
-    //   dateRange,
-    //   fieldChunks
-    // );
-    // if (insightAgeGender === null) {
-    //   return null;
-    // }
-    // await this.saveInsights(insightAgeGender, 'ad', ad.id);
+    return await this.processInsights('ad', ad, dateRange, fieldChunks);
   }
 
-  // Main function
   async getInsights() {
     const accountData = await this.adAccountRepository.find({
       select: ['name', 'account_id', 'business_name']
@@ -777,40 +934,73 @@ export class CronService {
     }
 
     const fb = await this.initializeFB();
+    // const fieldChunks = [
+    //   // Core metrics chunk
+    //   [
+    //     'reach',
+    //     'impressions',
+    //     'clicks',
+    //     'spend',
+    //     'ctr',
+    //     'cpc',
+    //     'cpm',
+    //     'date_start',
+    //     'date_stop'
+    //   ],
+    //   // Video metrics chunk
+    //   [
+    //     'video_30_sec_watched_actions',
+    //     'video_avg_time_watched_actions',
+    //     'video_play_actions'
+    //   ],
+    //   // Cost metrics chunk
+    //   [
+    //     'cost_per_outbound_click',
+    //     'cost_per_thruplay',
+    //     'cost_per_unique_action_type'
+    //   ],
+    //   // Engagement metrics chunk
+    //   [
+    //     'engagement_rate_ranking',
+    //     'estimated_ad_recall_rate',
+    //     'inline_link_click_ctr',
+    //     'inline_post_engagement'
+    //   ],
+    //   // Additional metrics chunk
+    //   [
+    //     'website_ctr',
+    //     'purchase_roas',
+    //     'quality_ranking',
+    //     'actions',
+    //     'spend',
+    //     'cost_per_action_type'
+    //   ]
+    // ];
     const fieldChunks = [
-      // Core metrics chunk
-      [
-        'reach',
-        'impressions',
-        'clicks',
-        'spend',
-        'ctr',
-        'cpc',
-        'cpm',
-        'date_start',
-        'date_stop'
-      ],
-      // Video metrics chunk
-      [
-        'video_30_sec_watched_actions',
-        'video_avg_time_watched_actions',
-        'video_play_actions'
-      ],
-      // Cost metrics chunk
-      [
-        'cost_per_outbound_click',
-        'cost_per_thruplay',
-        'cost_per_unique_action_type'
-      ],
-      // Engagement metrics chunk
-      [
-        'engagement_rate_ranking',
-        'estimated_ad_recall_rate',
-        'inline_link_click_ctr',
-        'inline_post_engagement'
-      ],
-      // Additional metrics chunk
-      ['website_ctr', 'purchase_roas', 'quality_ranking', 'actions', 'spend']
+      'reach',
+      'impressions',
+      'clicks',
+      'spend',
+      'ctr',
+      'cpc',
+      'cpm',
+      'date_start',
+      'date_stop',
+      'video_30_sec_watched_actions',
+      'video_avg_time_watched_actions',
+      'video_play_actions',
+      'cost_per_outbound_click',
+      'cost_per_thruplay',
+      'cost_per_unique_action_type',
+      'engagement_rate_ranking',
+      'estimated_ad_recall_rate',
+      'inline_link_click_ctr',
+      'inline_post_engagement',
+      'website_ctr',
+      'purchase_roas',
+      'quality_ranking',
+      'actions',
+      'cost_per_action_type'
     ];
     const today = new Date();
     today.setDate(today.getDate() - 1);
@@ -840,25 +1030,25 @@ export class CronService {
           if (campaignData === null) {
             continue;
           }
-          const adSets = await this.adSetRepository.find({
-            where: { campaign_meta_id: campaign.campaign_meta_id }
-          });
-          for (const adSet of adSets) {
-            const adSetData = await this.processAdSetInsights(
-              adSet,
-              dateRange,
-              fieldChunks
-            );
-            if (adSetData === null) {
-              continue;
-            }
-            const ads = await this.adRepository.find({
-              where: { adset_id: adSet.adset_meta_id }
-            });
-            for (const ad of ads) {
-              await this.processAdInsights(ad, dateRange, fieldChunks);
-            }
-          }
+          // const adSets = await this.adSetRepository.find({
+          //   where: { campaign_meta_id: campaign.campaign_meta_id }
+          // });
+          // for (const adSet of adSets) {
+          //   const adSetData = await this.processAdSetInsights(
+          //     adSet,
+          //     dateRange,
+          //     fieldChunks
+          //   );
+          //   if (adSetData === null) {
+          //     continue;
+          //   }
+          //   const ads = await this.adRepository.find({
+          //     where: { adset_id: adSet.adset_meta_id }
+          //   });
+          //   for (const ad of ads) {
+          //     await this.processAdInsights(ad, dateRange, fieldChunks);
+          //   }
+          // }
         }
       } catch (error) {
         console.error(

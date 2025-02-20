@@ -7,6 +7,7 @@ import { CampaignModule } from './campaign/campaign.module';
 import { CronModule } from './cron/cron.module';
 import { AdsetsModule } from './adsets/adsets.module';
 import { AdModule } from './ad/ad.module';
+import { UserDashboardModule } from './user_dashboard/user_dashboard.module';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { AdModule } from './ad/ad.module';
     CampaignModule,
     CronModule,
     AdsetsModule,
-    AdModule
+    AdModule,
+    UserDashboardModule
   ]
 })
 export class MetaModule {}
