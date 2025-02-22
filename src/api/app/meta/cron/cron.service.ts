@@ -503,7 +503,6 @@ export class CronService {
           } else {
             adData.ad_set_id = adSetRecord;
             adData.campaign_id = adSetRecord.campaign;
-            console.log(adData);
 
             await this.adRepository.update(
               { ad_meta_id: adData.ad_meta_id },
@@ -542,7 +541,7 @@ export class CronService {
               // fields: fieldChunk.join(','),
               fields: fieldChunk,
               // date_preset: 'yesterday',
-              time_range: { since: '2024-11-22', until: '2024-11-22' },
+              time_range: { since: '2024-11-20', until: '2024-11-20' },
               breakdowns,
               limit: 100
             },
@@ -560,10 +559,14 @@ export class CronService {
         }
         return null;
       } catch (error) {
-        console.log(error);
-
         attempts++;
-        if (error.code === 2 && error.error_subcode === 1504018) {
+        if (
+          error.code === 2 ||
+          error.error_subcode === 1504018 ||
+          error.code === 80000 ||
+          error.error_subcode === 2446079
+        ) {
+          console.log('masuk error delay');
           await delay(5000 * attempts);
           continue;
         }
@@ -577,54 +580,6 @@ export class CronService {
       }
     }
   }
-
-  // async fetchInsightsForEntity(path, dateRange, fieldChunks) {
-  //   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  //   let mergedData = {};
-
-  //   for (const fieldChunk of fieldChunks) {
-  //     await delay(1000);
-  //     const chunkData = await this.fetchInsightsWithRetry(
-  //       path,
-  //       dateRange,
-  //       fieldChunk,
-  //       'age,gender'
-  //     );
-
-  //     if (chunkData && chunkData[0]) {
-  //       mergedData = {
-  //         ...mergedData,
-  //         ...chunkData[0]
-  //       };
-  //     } else {
-  //       return null;
-  //     }
-  //   }
-  //   return mergedData;
-  // }
-
-  // async fetchInsightsForEntity(path, dateRange, fieldChunks, breakdowns?: any) {
-  //   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  //   let mergedData: any[] = [];
-
-  //   // for (const fieldChunk of fieldChunks) {
-  //   await delay(1000);
-
-  //   const chunkData = await this.fetchInsightsWithRetry(
-  //     path,
-  //     dateRange,
-  //     fieldChunks,
-  //     breakdowns
-  //   );
-
-  //   if (chunkData && chunkData.length > 0) {
-  //     return chunkData;
-  //   } else {
-  //     return null;
-  //   }
-  //   // }
-  //   return mergedData;
-  // }
 
   async saveInsights(insightDataArray, referenceType, referenceId) {
     try {
@@ -652,7 +607,7 @@ export class CronService {
                 }
               );
               break;
-            case 'ad_set':
+            case 'adset':
               insightData.adset_id = await this.adSetRepository.findOneBy({
                 id: referenceId
               });
@@ -687,10 +642,12 @@ export class CronService {
           insightData.video_views = actions?.video_view || 0;
           insightData.lead = actions?.lead || 0;
 
-          // CPM - Cost per 1,000 Reach
           // CPM - Cost per Mile
+
           insightData.cost_per_mile =
-            insightData.spend && insightData.reach
+            insightData.spend &&
+            insightData.reach &&
+            parseFloat(insightData.reach) > 0
               ? Math.ceil(
                   (parseFloat(insightData.spend) /
                     parseFloat(insightData.reach)) *
@@ -704,27 +661,28 @@ export class CronService {
             (actions?.page_engagement || 0) +
             (actions?.like || 0) +
             (actions?.comment || 0);
+
           insightData.cost_per_engagement =
-            totalEngagement > 0
+            insightData.spend && totalEngagement > 0
               ? Math.ceil(parseFloat(insightData.spend) / totalEngagement)
               : 0;
 
           // CPV - Cost per View
           insightData.cost_per_view =
-            actions?.video_view > 0
-              ? Math.ceil(parseFloat(insightData.spend) / actions?.video_view)
+            insightData.spend && actions?.video_view > 0
+              ? Math.ceil(parseFloat(insightData.spend) / actions.video_view)
               : 0;
 
           // CPC - Cost per Click
           insightData.cost_per_click =
-            actions?.link_click > 0
-              ? Math.ceil(parseFloat(insightData.spend) / actions?.link_click)
+            insightData.spend && actions?.link_click > 0
+              ? Math.ceil(parseFloat(insightData.spend) / actions.link_click)
               : 0;
 
           // CPL - Cost per Lead
           insightData.cost_per_lead =
-            actions?.lead > 0
-              ? Math.ceil(parseFloat(insightData.spend) / actions?.lead)
+            insightData.spend && actions?.lead > 0
+              ? Math.ceil(parseFloat(insightData.spend) / actions.lead)
               : 0;
 
           // Menyimpan breakdowns jika ada
@@ -762,19 +720,16 @@ export class CronService {
               insightData.insight_breakdown_id = breakdown;
             }
           }
-          // console.log(insightData);
           await this.insightRepository.save(insightData);
         }
       }
     } catch (err) {
-      // console.log(err, 'err save insight');
       throw new HttpException(err.message, 400);
     }
   }
 
   async processAdAccountInsights(account, dateRange, fieldChunks) {
     const path = `/act_${account.account_id}/insights`;
-    console.log(path);
     const insights = await this.fetchInsightsForEntity(
       path,
       dateRange,
@@ -785,83 +740,6 @@ export class CronService {
     }
     await this.saveInsights(insights, 'ad_account', account.id);
   }
-
-  // async processCampaignInsights(campaign, dateRange, fieldChunks) {
-  //   const path = `/${campaign.campaign_meta_id}/insights`;
-  //   const insightsWithBreakdownGA = await this.fetchInsightsForEntity(
-  //     path,
-  //     dateRange,
-  //     fieldChunks,
-  //     'gender,age'
-  //   );
-  //   if (insightsWithBreakdownGA === null) {
-  //     return null;
-  //   }
-  //   for (const insightGa of insightsWithBreakdownGA) {
-  //     await this.saveInsights(insightGa, 'campaign', campaign.id);
-  //   }
-
-  //   const insightsWithBreakdownCR = await this.fetchInsightsForEntity(
-  //     path,
-  //     dateRange,
-  //     fieldChunks,
-  //     ['country', 'region']
-  //   );
-  //   if (insightsWithBreakdownCR === null) {
-  //     return null;
-  //   }
-  //   for (const insightCR of insightsWithBreakdownCR) {
-  //     await this.saveInsights(insightCR, 'campaign', campaign.id);
-  //   }
-
-  //   const insightsWithBreakdownPD = await this.fetchInsightsForEntity(
-  //     path,
-  //     dateRange,
-  //     fieldChunks,
-  //     ['publisher_platform', 'device_platform']
-  //   );
-  //   if (insightsWithBreakdownPD === null) {
-  //     return null;
-  //   }
-  //   for (const insightPD of insightsWithBreakdownPD) {
-  //     await this.saveInsights(insightPD, 'campaign', campaign.id);
-  //   }
-  // }
-
-  // async processAdSetInsights(adSet, dateRange, fieldChunks) {
-  //   const path = `/${adSet.adset_meta_id}/insights`;
-  //   const insights = await this.fetchInsightsForEntity(
-  //     path,
-  //     dateRange,
-  //     fieldChunks
-  //   );
-  //   if (insights === null) {
-  //     return null;
-  //   }
-  //   await this.saveInsights(insights, 'ad_set', adSet.id);
-  //   // const insightAgeGender = await this.fetchInsightsForEntityAgeAndGender(
-  //   //   path,
-  //   //   dateRange,
-  //   //   fieldChunks
-  //   // );
-  //   // if (insightAgeGender === null) {
-  //   //   return null;
-  //   // }
-  //   // await this.saveInsights(insightAgeGender, 'ad_set', adSet.id);
-  // }
-
-  // async processAdInsights(ad, dateRange, fieldChunks) {
-  //   const path = `${ad.ad_meta_id}/insights`;
-  //   const insights = await this.fetchInsightsForEntity(
-  //     path,
-  //     dateRange,
-  //     fieldChunks
-  //   );
-  //   if (insights === null) {
-  //     return null;
-  //   }
-  //   await this.saveInsights(insights, 'ad', ad.id);
-  // }
 
   async fetchInsightsForEntity(path, dateRange, fieldChunks, breakdowns?: any) {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -880,23 +758,38 @@ export class CronService {
   async processInsights(entityType, entity, dateRange, fieldChunks) {
     const path = `/${entity[`${entityType}_meta_id`]}/insights`;
 
+    const insightsWithoutBreakdown = await this.fetchInsightsForEntity(
+      path,
+      dateRange,
+      fieldChunks,
+      null
+    );
+
+    if (insightsWithoutBreakdown === null) return null;
+
+    for (const insight of insightsWithoutBreakdown) {
+      await this.saveInsights(insight, entityType, entity.id);
+    }
+
     const breakdownCombinations = [
-      'gender,age',
-      'country,region',
-      'publisher_platform,device_platform'
+      'gender',
+      'age',
+      'country',
+      'region',
+      'publisher_platform',
+      'device_platform'
     ];
 
     for (const breakdown of breakdownCombinations) {
-      console.log(breakdown);
-
       const insights = await this.fetchInsightsForEntity(
         path,
         dateRange,
         fieldChunks,
         breakdown
       );
+
       if (insights === null) {
-        return null;
+        break;
       }
       for (const insight of insights) {
         await this.saveInsights(insight, entityType, entity.id);
@@ -1005,14 +898,11 @@ export class CronService {
     const today = new Date();
     today.setDate(today.getDate() - 1);
 
-    // const dateRange = today.toISOString().split('T')[0];
-    const dateRange = '2023-12-25';
-
     for (const account of accountData) {
       try {
         const adAccountData = await this.processAdAccountInsights(
           account,
-          dateRange,
+          null,
           fieldChunks
         );
         if (adAccountData === null) {
@@ -1024,31 +914,31 @@ export class CronService {
         for (const campaign of campaigns) {
           const campaignData = await this.processCampaignInsights(
             campaign,
-            dateRange,
+            null,
             fieldChunks
           );
           if (campaignData === null) {
             continue;
           }
-          // const adSets = await this.adSetRepository.find({
-          //   where: { campaign_meta_id: campaign.campaign_meta_id }
-          // });
-          // for (const adSet of adSets) {
-          //   const adSetData = await this.processAdSetInsights(
-          //     adSet,
-          //     dateRange,
-          //     fieldChunks
-          //   );
-          //   if (adSetData === null) {
-          //     continue;
-          //   }
-          //   const ads = await this.adRepository.find({
-          //     where: { adset_id: adSet.adset_meta_id }
-          //   });
-          //   for (const ad of ads) {
-          //     await this.processAdInsights(ad, dateRange, fieldChunks);
-          //   }
-          // }
+          const adSets = await this.adSetRepository.find({
+            where: { campaign_meta_id: campaign.campaign_meta_id }
+          });
+          for (const adSet of adSets) {
+            const adSetData = await this.processAdSetInsights(
+              adSet,
+              null,
+              fieldChunks
+            );
+            if (adSetData === null) {
+              continue;
+            }
+            const ads = await this.adRepository.find({
+              where: { adset_id: adSet.adset_meta_id }
+            });
+            for (const ad of ads) {
+              await this.processAdInsights(ad, null, fieldChunks);
+            }
+          }
         }
       } catch (error) {
         console.error(
@@ -1140,10 +1030,8 @@ export class CronService {
 
             audienceData.ad_account = accountRecord;
 
-            console.log(audienceData, '<<<<<< create');
             await this.customAudienceRepository.save(audienceData);
           } else {
-            console.log(audienceData.id, '<<<<<< update');
             await this.customAudienceRepository.update(
               { audience_meta_id: audienceData.audience_meta_id },
               { ...audienceData }

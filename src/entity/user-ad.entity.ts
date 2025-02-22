@@ -39,6 +39,9 @@ export class UserAd {
   @Column()
   name: string;
 
+  @Column({ nullable: true })
+  budget: number;
+
   @Exclude()
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;

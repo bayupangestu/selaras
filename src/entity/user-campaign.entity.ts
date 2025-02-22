@@ -51,9 +51,6 @@ export class UserCampaign {
   @Column()
   name: string;
 
-  @Column({ nullable: true })
-  budget: number;
-
   @OneToMany(() => UserAdsets, (userAdset) => userAdset.user_campaign_id)
   user_adsets: UserAdsets[];
 

@@ -1,4 +1,13 @@
-import { Controller, Get, Inject, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Query,
+  Req,
+  Res,
+  UseGuards
+} from '@nestjs/common';
 import { UserDashboardService } from './user_dashboard.service';
 import { JwtAuthGuard } from '@/api/auth/auth.guard';
 
@@ -41,5 +50,20 @@ export class UserDashboardController {
   @UseGuards(JwtAuthGuard)
   async getAd(@Query() query: any) {
     return await this.userDashboardService.getAds(query);
+  }
+
+  @Get('filter-list')
+  async filterList() {
+    return await this.userDashboardService.getFilterList();
+  }
+
+  @Get('filter-value')
+  async filterValue(@Query() query: any) {
+    return await this.userDashboardService.getFilterValue(query.column);
+  }
+
+  @Get('report')
+  async getCustomerReport(@Res() res: any, @Body() body: any) {
+    return await this.userDashboardService.getDataCardReportCsv(res, body);
   }
 }

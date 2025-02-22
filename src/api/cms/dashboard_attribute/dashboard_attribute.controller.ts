@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Res
+} from '@nestjs/common';
 import { DashboardAttributeService } from './dashboard_attribute.service';
 
 @Controller('cms/dashboard-attribute')
@@ -25,6 +34,21 @@ export class DashboardAttributeController {
   @Get('ad-user-dashboard')
   async adUserDashboard(@Query() query: any) {
     return await this.dashboardAttributeService.adDashboard(query);
+  }
+
+  @Get('filter-list')
+  async filterList() {
+    return await this.dashboardAttributeService.getFilterList();
+  }
+
+  @Get('filter-value')
+  async filterValue(@Query() query: any) {
+    return await this.dashboardAttributeService.getFilterValue(query.column);
+  }
+
+  @Get('report')
+  async getCustomerReport(@Res() res: any, @Body() body: any) {
+    return await this.dashboardAttributeService.getDataCardReportCsv(res, body);
   }
 
   @Post('custom-dashboard')

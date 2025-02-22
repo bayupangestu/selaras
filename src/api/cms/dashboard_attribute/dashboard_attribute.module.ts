@@ -9,6 +9,7 @@ import { UserDashboard } from '@/entity/user-dashboard.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
+import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { UserAdsets } from '@/entity/user-adset.entity';
       UserDashboard,
       UserCampaign,
       UserAd,
-      UserAdsets
+      UserAdsets,
+      InsightBreakdown
     ]),
     AuthModule
   ],

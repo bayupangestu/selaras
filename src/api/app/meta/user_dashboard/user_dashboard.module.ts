@@ -12,6 +12,7 @@ import { UserAdsets } from '@/entity/user-adset.entity';
 import { Campaign } from '@/entity/campaign.entity';
 import { AdSet } from '@/entity/ad-set.entity';
 import { Ad } from '@/entity/ad.entity';
+import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { Ad } from '@/entity/ad.entity';
       UserAdsets,
       Campaign,
       AdSet,
-      Ad
+      Ad,
+      InsightBreakdown
     ]),
     AuthModule
   ],
