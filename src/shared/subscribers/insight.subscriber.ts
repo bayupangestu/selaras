@@ -108,7 +108,6 @@ export class InsightListenerService
       }
 
       if (whereConditions.length === 0) {
-        console.warn('No valid conditions found for insight');
         return;
       }
 
@@ -132,7 +131,45 @@ export class InsightListenerService
         return;
       }
 
+      const videoThruplay = insight?.video_thruplay_watched_actions?.find(
+        (item) => item.action_type === 'video_view'
+      );
+
+      const videoViewsData = insight?.video_play_actions?.find(
+        (item) => item.action_type === 'video_view'
+      );
+
       if (
+        !dashboardData.time_period ||
+        (dashboardData.time_period === insight.date &&
+          dashboardData.insight_breakdown_id?.id ===
+            insight.insight_breakdown_id?.id)
+      ) {
+        dashboardData.time_period = insight.date;
+        dashboardData.reach = insight.reach;
+        dashboardData.impression = insight.impressions;
+        dashboardData.clicks = insight.clicks;
+        dashboardData.ctr = insight.ctr;
+        dashboardData.post_engagement = insight.post_engagement;
+        dashboardData.thruplay = videoThruplay;
+        dashboardData.thumbnail_ads = null;
+        dashboardData.lead = insight.lead;
+        dashboardData.video_views = videoViewsData
+          ? Number(videoViewsData.value)
+          : 0;
+        dashboardData.link_click = insight.link_click;
+        dashboardData.cost_per_click = insight.cost_per_click;
+        dashboardData.cost_per_mile = insight.cost_per_mile;
+        dashboardData.cost_per_view = insight.cost_per_view;
+        dashboardData.cost_per_lead = insight.cost_per_lead;
+        dashboardData.cost_per_engagement = insight.cost_per_engagement;
+        dashboardData.spend = insight.spend;
+        dashboardData.insight_breakdown_id = insight.insight_breakdown_id;
+
+        await userDashboardRepository.update(dashboardData.id, dashboardData);
+
+        return;
+      } else if (
         dashboardData.time_period !== insight.date ||
         dashboardData.insight_breakdown_id?.id !==
           insight.insight_breakdown_id?.id
@@ -142,13 +179,14 @@ export class InsightListenerService
         newDashboardData.reach = insight.reach;
         newDashboardData.impression = insight.impressions;
         newDashboardData.clicks = insight.clicks;
-        newDashboardData.ctr = Number(insight.ctr);
+        newDashboardData.ctr = insight.ctr;
         newDashboardData.post_engagement = insight.post_engagement;
-        newDashboardData.views = null;
-        newDashboardData.thruplay = insight.cost_per_thruplay;
+        dashboardData.thruplay = videoThruplay;
         newDashboardData.thumbnail_ads = null;
         newDashboardData.lead = insight.lead;
-        newDashboardData.video_views = insight.video_views;
+        newDashboardData.video_views = videoViewsData
+          ? Number(videoViewsData.value)
+          : 0;
         newDashboardData.link_click = insight.link_click;
         newDashboardData.cost_per_click = insight.cost_per_click;
         newDashboardData.cost_per_mile = insight.cost_per_mile;
@@ -176,34 +214,7 @@ export class InsightListenerService
         }
 
         await userDashboardRepository.save(newDashboardData);
-        console.log('New dashboard data created due to different time_period');
-        return;
-      } else if (
-        !dashboardData.time_period ||
-        dashboardData.time_period === insight.date
-      ) {
-        dashboardData.time_period = insight.date;
-        dashboardData.reach = insight.reach;
-        dashboardData.impression = insight.impressions;
-        dashboardData.clicks = insight.clicks;
-        dashboardData.ctr = Number(insight.ctr);
-        dashboardData.post_engagement = insight.post_engagement;
-        dashboardData.views = null;
-        dashboardData.thruplay = insight.cost_per_thruplay;
-        dashboardData.thumbnail_ads = null;
-        dashboardData.lead = insight.lead;
-        dashboardData.video_views = insight.video_views;
-        dashboardData.link_click = insight.link_click;
-        dashboardData.cost_per_click = insight.cost_per_click;
-        dashboardData.cost_per_mile = insight.cost_per_mile;
-        dashboardData.cost_per_view = insight.cost_per_view;
-        dashboardData.cost_per_lead = insight.cost_per_lead;
-        dashboardData.cost_per_engagement = insight.cost_per_engagement;
-        dashboardData.spend = insight.spend;
-        dashboardData.insight_breakdown_id = insight.insight_breakdown_id;
 
-        await userDashboardRepository.update(dashboardData.id, dashboardData);
-        console.log('Existing dashboard data updated');
         return;
       }
     } catch (err) {

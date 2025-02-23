@@ -4,14 +4,17 @@ import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { UserDashboard } from '@/entity/user-dashboard.entity';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository, getMetadataArgsStorage } from 'typeorm';
+import { FB } from 'fb';
 import * as ExcelJS from 'exceljs';
 import * as moment from 'moment';
+import { CronService } from '@/api/app/meta/cron/cron.service';
 
 @Injectable()
 export class DashboardAttributeService {
+  private fb: FB;
   constructor(
     @InjectRepository(UserDashboard)
     private readonly userDashboardRepository: Repository<UserDashboard>,
@@ -29,7 +32,10 @@ export class DashboardAttributeService {
     private readonly userAdRepository: Repository<UserAd>,
 
     @InjectRepository(InsightBreakdown)
-    private readonly breakdownRepository: Repository<InsightBreakdown>
+    private readonly breakdownRepository: Repository<InsightBreakdown>,
+
+    @Inject(CronService)
+    private readonly cronService: CronService
   ) {}
 
   getEntityColumns(entity: any) {
@@ -182,14 +188,17 @@ export class DashboardAttributeService {
       {
         user_adsets: {
           user_ads: true
-        }
+        },
+        meta_campaign_id: true
       }
     );
+
     return this.getDashboardData(
       query,
       'user_campaign_id',
       this.userCampaignRepository,
-      budgetData.budget
+      budgetData.budget,
+      budgetData.campaign_meta_id.campaign_meta_id
     );
   }
 
@@ -198,13 +207,15 @@ export class DashboardAttributeService {
       this.userAdsetRepository,
       query,
       'user_adset_id',
-      { user_ads: true }
+      { user_ads: true, meta_adset_id: true }
     );
+
     return this.getDashboardData(
       query,
       'user_adset_id',
       this.userAdsetRepository,
-      budgetData.budget
+      budgetData.budget,
+      budgetData.meta_adset_id.adset_meta_id
     );
   }
 
@@ -213,13 +224,15 @@ export class DashboardAttributeService {
       this.userAdRepository,
       query,
       'user_ad_id',
-      {}
+      { meta_ad_id: true }
     );
+
     return this.getDashboardData(
       query,
       'user_ad_id',
       this.userAdRepository,
-      budgetData.budget
+      budgetData.budget,
+      budgetData.meta_ad_id.ad_meta_id
     );
   }
 
@@ -254,210 +267,30 @@ export class DashboardAttributeService {
     if (budgets.length === 0) {
       return null;
     } else if (budgets.length === 1) {
-      return budgets[0];
+      return {
+        ...budgets[0],
+        campaign_meta_id: budgetData.meta_campaign_id || null,
+        meta_adset_id: budgetData.meta_adset_id || null
+      };
     } else {
-      return budgets.reduce((min, current) =>
+      const minBudget = budgets.reduce((min, current) =>
         current.budget < min.budget ? current : min
       );
+
+      return {
+        ...minBudget,
+        campaign_meta_id: budgetData.meta_campaign_id || null,
+        meta_adset_id: budgetData.meta_adset_id || null
+      };
     }
   }
-
-  // private async getDashboardData(
-  //   query: any,
-  //   idField: string,
-  //   repository: any,
-  //   budget
-  // ) {
-  //   if (!query[idField]) {
-  //     throw new HttpException(
-  //       `${idField.replace('_', ' ')} must be provided.`,
-  //       HttpStatus.BAD_REQUEST
-  //     );
-  //   }
-
-  //   const entityData = await repository.findOne({
-  //     where: { id: query[idField] }
-  //   });
-  //   if (!entityData) {
-  //     throw new HttpException(`${idField.replace('_id', '')} not found`, 404);
-  //   }
-
-  //   if (!query.filter) {
-  //     throw new HttpException('Filter is required', 400);
-  //   }
-
-  //   const queryBuilder = this.userDashboardRepository
-  //     .createQueryBuilder('dashboard')
-  //     .leftJoinAndSelect(
-  //       'dashboard.dashboard_attribute_visibility_id',
-  //       'attribute_visibility'
-  //     )
-  //     .leftJoinAndSelect('dashboard.campaign_type_id', 'campaign_type')
-  //     .leftJoinAndSelect('dashboard.insight_breakdown_id', 'insight_breakdown')
-  //     .where(`dashboard.${idField} = :id`, { id: entityData.id });
-
-  //   if (query.filter.includes('all')) {
-  //     queryBuilder.andWhere('insight_breakdown.id IS NULL');
-  //   } else {
-  //     const filterIds = Array.isArray(query.filter)
-  //       ? query.filter.filter(
-  //           (id) => typeof id === 'string' && id.length === 36
-  //         )
-  //       : [query.filter].filter(
-  //           (id) => typeof id === 'string' && id.length === 36
-  //         );
-
-  //     if (filterIds.length > 0) {
-  //       queryBuilder.andWhere('insight_breakdown.id IN (:...filterIds)', {
-  //         filterIds
-  //       });
-  //     } else {
-  //       throw new HttpException('Invalid filter ID format', 400);
-  //     }
-  //   }
-
-  //   const userDashboard = await queryBuilder.getMany();
-
-  //   if (!userDashboard || userDashboard.length === 0) {
-  //     throw new HttpException(
-  //       `${idField.replace('_id', '')} dashboard not found`,
-  //       404
-  //     );
-  //   }
-
-  //   let startDateFilter = query.start_date
-  //     ? new Date(`${query.start_date}T00:00:00.000Z`)
-  //     : null;
-  //   let endDateFilter = query.end_date
-  //     ? new Date(`${query.end_date}T23:59:59.999Z`)
-  //     : null;
-
-  //   const filteredDashboard = userDashboard.filter((item) => {
-  //     const timePeriodDate = new Date(item.time_period);
-  //     return (
-  //       (!startDateFilter || timePeriodDate >= startDateFilter) &&
-  //       (!endDateFilter || timePeriodDate <= endDateFilter)
-  //     );
-  //   });
-
-  //   if (filteredDashboard.length === 0) {
-  //     return {
-  //       [idField]: entityData.id,
-  //       name: entityData.name,
-  //       start_date: null,
-  //       end_date: null,
-  //       data_card: {},
-  //       metrics: []
-  //     };
-  //   }
-
-  //   const allowedAttributes = new Set(
-  //     filteredDashboard[0].dashboard_attribute_visibility_id.attribute_name
-  //   );
-
-  //   const result: any = {
-  //     [idField]: entityData.id,
-  //     name: entityData.name,
-  //     start_date: null,
-  //     end_date: null
-  //   };
-
-  //   const aggregatedData: any = {};
-  //   const metricsMap: Map<string, number> = new Map();
-  //   let startDate = null;
-  //   let endDate = null;
-  //   let costPerResult: any;
-  //   let metricName: string;
-
-  //   filteredDashboard.forEach((item) => {
-  //     const timePeriod =
-  //       typeof item.time_period === 'string'
-  //         ? item.time_period // Jika sudah dalam format string YYYY-MM-DD
-  //         : new Date(item.time_period).toISOString().split('T')[0]; // Konversi jika bukan string
-
-  //     if (!startDate || new Date(timePeriod) < new Date(startDate)) {
-  //       startDate = timePeriod;
-  //     }
-  //     if (!endDate || new Date(timePeriod) > new Date(endDate)) {
-  //       endDate = timePeriod;
-  //     }
-
-  //     const campaignType = item.campaign_type_id?.name || 'Unknown';
-
-  //     const metricKey = (() => {
-  //       switch (campaignType.toLowerCase()) {
-  //         case 'cpm':
-  //           costPerResult = item.cost_per_mile;
-  //           metricName = 'reach';
-  //           return 'reach';
-  //         case 'cpc':
-  //           costPerResult = item.cost_per_click;
-  //           metricName = 'link_click';
-  //           return 'link_click';
-  //         case 'cpl':
-  //           costPerResult = item.cost_per_lead;
-  //           metricName = 'lead';
-  //           return 'lead';
-  //         case 'cpe':
-  //           costPerResult = item.cost_per_engagement;
-  //           metricName = 'post_engagement';
-  //           return 'post_engagement';
-  //         case 'cpv':
-  //           costPerResult = item.cost_per_view;
-  //           metricName = 'video_views';
-  //           return 'video_views';
-  //         default:
-  //           return null;
-  //       }
-  //     })();
-
-  //     if (metricKey) {
-  //       metricsMap.set(
-  //         timePeriod,
-  //         (metricsMap.get(timePeriod) || 0) + (item[metricKey] || 0)
-  //       );
-  //     }
-
-  //     Object.keys(item).forEach((key) => {
-  //       if (allowedAttributes.has(key)) {
-  //         if (typeof item[key] === 'number') {
-  //           aggregatedData[key] = (aggregatedData[key] || 0) + item[key];
-  //         } else {
-  //           aggregatedData[key] = item[key];
-  //         }
-  //       }
-  //     });
-  //   });
-
-  //   delete aggregatedData.time_period;
-  //   result.start_date = startDate;
-  //   result.end_date = endDate;
-
-  //   const resultValue = costPerResult + costPerResult * aggregatedData.spend;
-
-  //   const amountSpend =
-  //     resultValue *
-  //     Array.from(metricsMap.values()).reduce((sum, value) => sum + value, 0);
-
-  //   const data_card = {
-  //     ...aggregatedData,
-  //     amount_spend: amountSpend
-  //   };
-
-  //   const metrics = Array.from(metricsMap.entries()).map(([date, value]) => ({
-  //     date,
-  //     name: metricName,
-  //     value
-  //   }));
-
-  //   return { ...result, data_card, metrics };
-  // }
 
   private async getDashboardData(
     query: any,
     idField: string,
     repository: any,
-    budget: number
+    budget: number,
+    idPath: string
   ) {
     if (!query[idField]) {
       throw new HttpException(
@@ -485,6 +318,9 @@ export class DashboardAttributeService {
       )
       .leftJoinAndSelect('dashboard.campaign_type_id', 'campaign_type')
       .leftJoinAndSelect('dashboard.insight_breakdown_id', 'insight_breakdown')
+      .leftJoinAndSelect('dashboard.meta_campaign_id', 'campaigns')
+      .leftJoinAndSelect('dashboard.meta_adset_id', 'adsets')
+      .leftJoinAndSelect('dashboard.meta_ad_id', 'ads')
       .where(`dashboard.${idField} = :id`, { id: entityData.id });
 
     if (query.filter.includes('all')) {
@@ -621,6 +457,14 @@ export class DashboardAttributeService {
         }
       });
     });
+
+    if (query.start_date !== query.end_date) {
+      const dateRange = { since: query.start_date, until: query.end_date };
+      const path = `${idPath}/insights`;
+      console.log(path, '<<<');
+      const reachData = await this.getReach(path, dateRange);
+      aggregatedData.reach = Number(reachData[0].reach);
+    }
 
     [
       'cost_per_mile',
@@ -769,69 +613,6 @@ export class DashboardAttributeService {
     };
   }
 
-  // async getDataCardReportCsv(res: any, campaignData: any) {
-  //   const workbook = new ExcelJS.Workbook();
-  //   const worksheet = workbook.addWorksheet('Campaign Report');
-
-  //   // Data utama kampanye
-  //   const campaignInfo = [
-  //     ['Campaign Name', campaignData.name || '-'],
-  //     ['Start Date', campaignData.start_date || '-'],
-  //     ['End Date', campaignData.end_date || '-']
-  //   ];
-
-  //   campaignInfo.forEach((row) => worksheet.addRow(row));
-  //   worksheet.addRow([]); // Spasi sebelum data card
-
-  //   // Ambil semua kunci dari data_card untuk memastikan fleksibilitas
-  //   const headers = Object.keys(campaignData.data_card || {});
-
-  //   // Tambahkan Header
-  //   const headerRow = worksheet.addRow(headers);
-  //   headerRow.eachCell((cell) => {
-  //     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  //     cell.fill = {
-  //       type: 'pattern',
-  //       pattern: 'solid',
-  //       fgColor: { argb: '4F81BD' }
-  //     };
-  //   });
-
-  //   // Buat array untuk menyimpan data secara dinamis
-  //   const dataRow = headers.map((key) => {
-  //     if (Array.isArray(campaignData.data_card[key])) {
-  //       return campaignData.data_card[key]
-  //         .map((item: any) => `${item.action_type}: ${item.value}`)
-  //         .join('; ');
-  //     }
-  //     return campaignData.data_card[key] ?? '-'; // Pastikan nilai tidak undefined atau null
-  //   });
-
-  //   worksheet.addRow(dataRow);
-
-  //   // Auto-size kolom
-  //   worksheet.columns.forEach((column) => {
-  //     let maxLength = 0;
-  //     column.eachCell({ includeEmpty: true }, (cell: any) => {
-  //       if (cell.value && cell.value.toString().length > maxLength) {
-  //         maxLength = cell.value.toString().length;
-  //       }
-  //     });
-  //     column.width = maxLength < 15 ? 15 : maxLength;
-  //   });
-
-  //   res.setHeader(
-  //     'Content-Type',
-  //     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  //   );
-  //   res.setHeader(
-  //     'Content-Disposition',
-  //     'attachment; filename="campaign_report.xlsx"'
-  //   );
-  //   await workbook.xlsx.write(res);
-  //   res.end();
-  // }
-
   async getDataCardReportCsv(res: any, campaignData: any) {
     try {
       const workbook = new ExcelJS.Workbook();
@@ -922,5 +703,30 @@ export class DashboardAttributeService {
       console.error('Error generating report:', error);
       res.status(500).json({ message: 'Error generating report' });
     }
+  }
+
+  private async getReach(path, time_range) {
+    const fb = await this.cronService.initializeFB();
+    const response: any = await new Promise((resolve, reject) => {
+      fb.api(
+        path,
+        'GET',
+        {
+          fields: ['reach'],
+          time_range
+        },
+        (res) => {
+          if (!res || res.error) {
+            reject(res?.error);
+          } else {
+            resolve(res);
+          }
+        }
+      );
+    });
+    if (response.data) {
+      return response.data;
+    }
+    return null;
   }
 }

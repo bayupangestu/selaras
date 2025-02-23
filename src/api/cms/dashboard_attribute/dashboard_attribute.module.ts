@@ -10,6 +10,14 @@ import { UserCampaign } from '@/entity/user-campaign.entity';
 import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
 import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
+import { CronService } from '@/api/app/meta/cron/cron.service';
+import { Setting } from '@/entity/setting.entity';
+import { SettingService } from '../setting/setting.service';
+import { AdAccount } from '@/entity/ad-account.entity';
+import { Campaign } from '@/entity/campaign.entity';
+import { AdSet } from '@/entity/ad-set.entity';
+import { Ad } from '@/entity/ad.entity';
+import { CustomAudience } from '@/entity/custom-audience.entity';
 
 @Module({
   imports: [
@@ -20,11 +28,17 @@ import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
       UserCampaign,
       UserAd,
       UserAdsets,
-      InsightBreakdown
+      InsightBreakdown,
+      Setting,
+      AdAccount,
+      Campaign,
+      AdSet,
+      Ad,
+      CustomAudience
     ]),
     AuthModule
   ],
   controllers: [DashboardAttributeController],
-  providers: [DashboardAttributeService]
+  providers: [DashboardAttributeService, CronService, SettingService]
 })
 export class DashboardAttributeModule {}

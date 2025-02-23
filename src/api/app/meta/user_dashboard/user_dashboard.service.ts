@@ -437,9 +437,17 @@ export class UserDashboardService {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Campaign Report');
 
+      let name;
+      if (campaignData.user_campaign_id) {
+        name = 'Campaign Name';
+      } else if (campaignData.user_adset_id) {
+        name = 'Adset Name';
+      } else if (campaignData.user_ad_id) {
+        name = 'Ad Name';
+      }
       // Data utama kampanye
       const campaignInfo = [
-        ['Campaign Name', campaignData.name || '-'],
+        [name, campaignData.name || '-'],
         ['Start Date', campaignData.start_date || '-'],
         ['End Date', campaignData.end_date || '-']
       ];

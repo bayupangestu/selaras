@@ -42,7 +42,7 @@ export class CronService {
     private readonly insightBreakdownRepository: Repository<InsightBreakdown>
   ) {}
 
-  private async initializeFB(): Promise<FB> {
+  public async initializeFB(): Promise<FB> {
     try {
       const accessToken = await this.settingService.getValue('ACCESS_TOKEN');
       FB.setAccessToken(accessToken);
@@ -548,7 +548,7 @@ export class CronService {
         const option = {
           fields: fieldChunk,
           date_preset: 'yesterday',
-          time_range: { since: '2024-11-20', until: '2024-11-20' },
+          time_range: dateRange,
           breakdowns,
           limit: 100
         };
@@ -659,13 +659,13 @@ export class CronService {
           );
 
           insightData.link_click = actions?.link_click || 0;
-          if (insightData.link_click > 0) {
-            insightData.ctr = Math.ceil(
-              insightData.link_click / insightData.impression
-            );
-          } else {
-            insightData.ctr = 0;
-          }
+          // if (insightData.link_click > 0) {
+          //   insightData.ctr = Math.ceil(
+          //     insightData.link_click / insightData.impression
+          //   );
+          // } else {
+          //   insightData.ctr = 0;
+          // }
           insightData.post_engagement = actions?.post_engagement || 0;
           insightData.video_views = actions?.video_view || 0;
           insightData.lead = actions?.lead || 0;
@@ -923,7 +923,8 @@ export class CronService {
       'purchase_roas',
       'quality_ranking',
       'actions',
-      'cost_per_action_type'
+      'cost_per_action_type',
+      'video_thruplay_watched_actions'
     ];
     const today = new Date();
     today.setDate(today.getDate() - 1);
@@ -1069,7 +1070,8 @@ export class CronService {
       'purchase_roas',
       'quality_ranking',
       'actions',
-      'cost_per_action_type'
+      'cost_per_action_type',
+      'video_thruplay_watched_actions'
     ];
     const today = new Date();
     today.setDate(today.getDate() - 1);

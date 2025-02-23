@@ -25,7 +25,7 @@ export class DashboardAttributeController {
   async campaignUserDashboard(@Query() query: any) {
     return await this.dashboardAttributeService.campaignUserDashboard(query);
   }
-
+  x;
   @Get('adset-user-dashboard')
   async adSetUserDashboard(@Query() query: any) {
     return await this.dashboardAttributeService.adSetDashboard(query);

@@ -85,9 +85,6 @@ export class UserDashboard {
   @Column({ nullable: true })
   post_engagement: number;
 
-  @Column({ nullable: true })
-  views: number;
-
   @Column({ nullable: true, type: 'json' })
   thruplay: any;
 

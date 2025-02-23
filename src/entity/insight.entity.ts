@@ -166,6 +166,9 @@ export class Insight extends BaseEntity {
   @Column({ type: 'float', nullable: true })
   cost_per_lead: number;
 
+  @Column({ type: 'json', nullable: true })
+  video_thruplay_watched_actions: { action_type: string; value: string }[];
+
   @ManyToOne(
     () => InsightBreakdown,
     (insightBreakdown) => insightBreakdown.insights
