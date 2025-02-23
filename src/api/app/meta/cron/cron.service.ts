@@ -290,6 +290,7 @@ export class CronService {
 
         while (currentRequest) {
           try {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
             const response = await new Promise<any>((resolve, reject) => {
               const params = {
                 fields,
@@ -443,6 +444,7 @@ export class CronService {
 
         while (currentRequest) {
           try {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
             const response = await new Promise<any>((resolve, reject) => {
               const params = {
                 fields,
