@@ -1,4 +1,5 @@
 import {
+  Body,
   ClassSerializerInterceptor,
   Controller,
   Get,
@@ -38,8 +39,8 @@ export class CronController {
 
   @Get('insight')
   @UseInterceptors(ClassSerializerInterceptor)
-  private async getInsight() {
-    return await this.cronService.getInsights();
+  private async getInsight(@Body() body: any) {
+    return await this.cronService.getInsights(body);
   }
 
   @Get('custom-audience')

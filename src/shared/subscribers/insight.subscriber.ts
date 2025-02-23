@@ -143,7 +143,7 @@ export class InsightListenerService
         newDashboardData.impression = insight.impressions;
         newDashboardData.clicks = insight.clicks;
         newDashboardData.ctr = Number(insight.ctr);
-        newDashboardData.post_engagement = insight.inline_post_engagement;
+        newDashboardData.post_engagement = insight.post_engagement;
         newDashboardData.views = null;
         newDashboardData.thruplay = insight.cost_per_thruplay;
         newDashboardData.thumbnail_ads = null;

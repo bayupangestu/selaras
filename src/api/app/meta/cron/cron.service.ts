@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FB } from 'fb';
 import { delay } from 'rxjs';
 import { Repository } from 'typeorm';
+import { Cron } from '@nestjs/schedule';
 const axios = require('axios');
 
 @Injectable()
@@ -55,6 +56,9 @@ export class CronService {
     }
   }
 
+  @Cron('0 1 * * *', {
+    timeZone: 'Asia/Jakarta'
+  })
   async getAdAccount() {
     try {
       const fb = await this.initializeFB();
@@ -109,6 +113,9 @@ export class CronService {
     }
   }
 
+  @Cron('15 1 * * *', {
+    timeZone: 'Asia/Jakarta'
+  })
   async getCampaignList() {
     const accountData = await this.adAccountRepository.find({
       select: ['name', 'account_id', 'business_name']
@@ -194,6 +201,9 @@ export class CronService {
     return result;
   }
 
+  @Cron('30 1 * * *', {
+    timeZone: 'Asia/Jakarta'
+  })
   async getAdSetList() {
     const accountData = await this.adAccountRepository.find({
       select: ['name', 'account_id', 'business_name']
@@ -375,6 +385,9 @@ export class CronService {
     return result;
   }
 
+  @Cron('45 1 * * *', {
+    timeZone: 'Asia/Jakarta'
+  })
   async getAdList() {
     const accountData = await this.adAccountRepository.find({
       select: ['name', 'account_id', 'business_name']
@@ -532,18 +545,26 @@ export class CronService {
     const maxAttempts = 3;
     while (attempts < maxAttempts) {
       try {
+        const option = {
+          fields: fieldChunk,
+          date_preset: 'yesterday',
+          time_range: { since: '2024-11-20', until: '2024-11-20' },
+          breakdowns,
+          limit: 100
+        };
+        if (dateRange === null) {
+          delete option.time_range;
+        } else {
+          delete option.date_preset;
+        }
+
         const fb = await this.initializeFB();
         const response: any = await new Promise((resolve, reject) => {
           fb.api(
             path,
             'GET',
             {
-              // fields: fieldChunk.join(','),
-              fields: fieldChunk,
-              // date_preset: 'yesterday',
-              time_range: { since: '2024-11-20', until: '2024-11-20' },
-              breakdowns,
-              limit: 100
+              ...option
             },
             (res) => {
               if (!res || res.error) {
@@ -566,7 +587,7 @@ export class CronService {
           error.code === 80000 ||
           error.error_subcode === 2446079
         ) {
-          console.log('masuk error delay');
+          console.log('masuk error delay', attempts);
           await delay(5000 * attempts);
           continue;
         }
@@ -638,6 +659,13 @@ export class CronService {
           );
 
           insightData.link_click = actions?.link_click || 0;
+          if (insightData.link_click > 0) {
+            insightData.ctr = Math.ceil(
+              insightData.link_click / insightData.impression
+            );
+          } else {
+            insightData.ctr = 0;
+          }
           insightData.post_engagement = actions?.post_engagement || 0;
           insightData.video_views = actions?.video_view || 0;
           insightData.lead = actions?.lead || 0;
@@ -656,15 +684,17 @@ export class CronService {
               : 0;
 
           // CPE - Cost per Engagement
-          const totalEngagement =
-            (actions?.post_engagement || 0) +
-            (actions?.page_engagement || 0) +
-            (actions?.like || 0) +
-            (actions?.comment || 0);
+          // const totalEngagement =
+          //   (actions?.post_engagement || 0) +
+          //   (actions?.page_engagement || 0) +
+          //   (actions?.like || 0) +
+          //   (actions?.comment || 0);
 
           insightData.cost_per_engagement =
-            insightData.spend && totalEngagement > 0
-              ? Math.ceil(parseFloat(insightData.spend) / totalEngagement)
+            insightData.spend && insightData.post_engagement > 0
+              ? Math.ceil(
+                  parseFloat(insightData.spend) / insightData.post_engagement
+                )
               : 0;
 
           // CPV - Cost per View
@@ -814,7 +844,153 @@ export class CronService {
     return await this.processInsights('ad', ad, dateRange, fieldChunks);
   }
 
-  async getInsights() {
+  async getInsights(body: any) {
+    const accountData = await this.adAccountRepository.find({
+      select: ['name', 'account_id', 'business_name']
+    });
+
+    if (accountData.length < 1) {
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Tidak Ada Data Yang Diproses'
+      };
+    }
+
+    const fb = await this.initializeFB();
+    // const fieldChunks = [
+    //   // Core metrics chunk
+    //   [
+    //     'reach',
+    //     'impressions',
+    //     'clicks',
+    //     'spend',
+    //     'ctr',
+    //     'cpc',
+    //     'cpm',
+    //     'date_start',
+    //     'date_stop'
+    //   ],
+    //   // Video metrics chunk
+    //   [
+    //     'video_30_sec_watched_actions',
+    //     'video_avg_time_watched_actions',
+    //     'video_play_actions'
+    //   ],
+    //   // Cost metrics chunk
+    //   [
+    //     'cost_per_outbound_click',
+    //     'cost_per_thruplay',
+    //     'cost_per_unique_action_type'
+    //   ],
+    //   // Engagement metrics chunk
+    //   [
+    //     'engagement_rate_ranking',
+    //     'estimated_ad_recall_rate',
+    //     'inline_link_click_ctr',
+    //     'inline_post_engagement'
+    //   ],
+    //   // Additional metrics chunk
+    //   [
+    //     'website_ctr',
+    //     'purchase_roas',
+    //     'quality_ranking',
+    //     'actions',
+    //     'spend',
+    //     'cost_per_action_type'
+    //   ]
+    // ];
+    const fieldChunks = [
+      'reach',
+      'impressions',
+      'clicks',
+      'spend',
+      'ctr',
+      'cpc',
+      'cpm',
+      'date_start',
+      'date_stop',
+      'video_30_sec_watched_actions',
+      'video_avg_time_watched_actions',
+      'video_play_actions',
+      'cost_per_outbound_click',
+      'cost_per_thruplay',
+      'cost_per_unique_action_type',
+      'engagement_rate_ranking',
+      'estimated_ad_recall_rate',
+      'inline_link_click_ctr',
+      'inline_post_engagement',
+      'website_ctr',
+      'purchase_roas',
+      'quality_ranking',
+      'actions',
+      'cost_per_action_type'
+    ];
+    const today = new Date();
+    today.setDate(today.getDate() - 1);
+    if (!body.date) {
+      throw new HttpException('Date is required', 400);
+    }
+    for (const account of accountData) {
+      try {
+        const adAccountData = await this.processAdAccountInsights(
+          account,
+          body.date,
+          fieldChunks
+        );
+        if (adAccountData === null) {
+          continue;
+        }
+        const campaigns = await this.campaignRepository.find({
+          where: { account_id: account.account_id }
+        });
+        for (const campaign of campaigns) {
+          const campaignData = await this.processCampaignInsights(
+            campaign,
+            body.date,
+            fieldChunks
+          );
+          if (campaignData === null) {
+            continue;
+          }
+          const adSets = await this.adSetRepository.find({
+            where: { campaign_meta_id: campaign.campaign_meta_id }
+          });
+          for (const adSet of adSets) {
+            const adSetData = await this.processAdSetInsights(
+              adSet,
+              body.date,
+              fieldChunks
+            );
+            if (adSetData === null) {
+              continue;
+            }
+            const ads = await this.adRepository.find({
+              where: { adset_id: adSet.adset_meta_id }
+            });
+            for (const ad of ads) {
+              await this.processAdInsights(ad, body.date, fieldChunks);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(
+          `Error processing insights for account ${account.account_id}:`,
+          error
+        );
+        console.warn(`Skipping account ${account.account_id} due to error`);
+      }
+    }
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Insights processed successfully'
+    };
+  }
+
+  @Cron('0 2 * * *', {
+    timeZone: 'Asia/Jakarta'
+  })
+  async getInsightsCron() {
     const accountData = await this.adAccountRepository.find({
       select: ['name', 'account_id', 'business_name']
     });
