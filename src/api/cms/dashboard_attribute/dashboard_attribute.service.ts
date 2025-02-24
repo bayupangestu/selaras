@@ -209,6 +209,8 @@ export class DashboardAttributeService {
       'user_adset_id',
       { user_ads: true, meta_adset_id: true }
     );
+    console.log(query.user_adset_id);
+    console.log(budgetData, '<<<<<');
 
     return this.getDashboardData(
       query,

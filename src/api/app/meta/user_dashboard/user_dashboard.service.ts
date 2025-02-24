@@ -7,10 +7,11 @@ import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
 import { UserCampaign } from '@/entity/user-campaign.entity';
 import { UserDashboard } from '@/entity/user-dashboard.entity';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { getMetadataArgsStorage, ILike, Repository } from 'typeorm';
 import * as ExcelJS from 'exceljs';
+import { CronService } from '../cron/cron.service';
 
 @Injectable()
 export class UserDashboardService {
@@ -40,7 +41,10 @@ export class UserDashboardService {
     private readonly adRepository: Repository<Ad>,
 
     @InjectRepository(InsightBreakdown)
-    private readonly breakdownRepository: Repository<InsightBreakdown>
+    private readonly breakdownRepository: Repository<InsightBreakdown>,
+
+    @Inject(CronService)
+    private readonly cronService: CronService
   ) {}
 
   getEntityColumns(entity: any) {
@@ -86,65 +90,117 @@ export class UserDashboardService {
   }
 
   async campaignUserDashboard(query: any) {
-    // const budget = await this.userCampaignRepository.findOne({
-    //   relations: {
-    //     user_adsets: {
-    //       user_ads: true
-    //     }
-    //   }
-    // });
+    const budgetData = await this.getBudgetData(
+      this.userCampaignRepository,
+      query,
+      'user_campaign_id',
+      {
+        user_adsets: {
+          user_ads: true
+        },
+        meta_campaign_id: true
+      }
+    );
 
     return this.getDashboardData(
       query,
       'user_campaign_id',
-      this.userCampaignRepository
-      // budget
+      this.userCampaignRepository,
+      budgetData.budget,
+      budgetData.campaign_meta_id.campaign_meta_id
     );
   }
 
   async adSetDashboard(query: any) {
-    // const budget = await this.userAdsetRepository.findOne({
-    //   select: ['budget'],
-    //   where: {
-    //     id: query.user_adset_id
-    //   }
-    // });
+    const budgetData = await this.getBudgetData(
+      this.userAdsetRepository,
+      query,
+      'user_adset_id',
+      { user_ads: true, meta_adset_id: true }
+    );
 
     return this.getDashboardData(
       query,
       'user_adset_id',
-      this.userAdsetRepository
-      // budget
+      this.userAdsetRepository,
+      budgetData.budget,
+      budgetData.meta_adset_id.adset_meta_id
     );
   }
 
   async adDashboard(query: any) {
-    // const budgetData = await this.userAdRepository.findOne({
-    //   select: {
-    //     user_adset_id: {
-    //       budget: true
-    //     }
-    //   },
-    //   relations: {
-    //     user_adset_id: true
-    //   },
-    //   where: {
-    //     id: query.user_ad_id
-    //   }
-    // });
-    // if (!budgetData) {
-    //   throw new HttpException('not found', 404);
-    // }
+    const budgetData = await this.getBudgetData(
+      this.userAdRepository,
+      query,
+      'user_ad_id',
+      { meta_ad_id: true }
+    );
 
     return this.getDashboardData(
       query,
       'user_ad_id',
-      this.userAdRepository
-      // budgetData.user_adset_id.budget
+      this.userAdRepository,
+      budgetData.budget,
+      budgetData.meta_ad_id.ad_meta_id
     );
   }
 
-  private async getDashboardData(query: any, idField: string, repository: any) {
+  async getBudgetData(repository, query, idKey, relations) {
+    const budgetData = await repository.findOne({
+      relations: relations,
+      where: {
+        id: query[idKey]
+      }
+    });
+
+    if (!budgetData) {
+      return null; // Handle case when no data is found
+    }
+
+    let budgets = [];
+
+    if (budgetData.user_ads) {
+      budgets = budgetData.user_ads.map((ad) => ({ budget: ad.budget, ad }));
+    } else if (budgetData.user_adsets) {
+      budgetData.user_adsets.forEach((adset) => {
+        if (adset.user_ads) {
+          budgets.push(
+            ...adset.user_ads.map((ad) => ({ budget: ad.budget, ad }))
+          );
+        }
+      });
+    } else if (budgetData.budget) {
+      return budgetData;
+    }
+
+    if (budgets.length === 0) {
+      return null;
+    } else if (budgets.length === 1) {
+      return {
+        ...budgets[0],
+        campaign_meta_id: budgetData.meta_campaign_id || null,
+        meta_adset_id: budgetData.meta_adset_id || null
+      };
+    } else {
+      const minBudget = budgets.reduce((min, current) =>
+        current.budget < min.budget ? current : min
+      );
+
+      return {
+        ...minBudget,
+        campaign_meta_id: budgetData.meta_campaign_id || null,
+        meta_adset_id: budgetData.meta_adset_id || null
+      };
+    }
+  }
+
+  private async getDashboardData(
+    query: any,
+    idField: string,
+    repository: any,
+    budget: number,
+    idPath: string
+  ) {
     if (!query[idField]) {
       throw new HttpException(
         `${idField.replace('_', ' ')} must be provided.`,
@@ -171,6 +227,9 @@ export class UserDashboardService {
       )
       .leftJoinAndSelect('dashboard.campaign_type_id', 'campaign_type')
       .leftJoinAndSelect('dashboard.insight_breakdown_id', 'insight_breakdown')
+      .leftJoinAndSelect('dashboard.meta_campaign_id', 'campaigns')
+      .leftJoinAndSelect('dashboard.meta_adset_id', 'adsets')
+      .leftJoinAndSelect('dashboard.meta_ad_id', 'ads')
       .where(`dashboard.${idField} = :id`, { id: entityData.id });
 
     if (query.filter.includes('all')) {
@@ -245,12 +304,14 @@ export class UserDashboardService {
     let endDate = null;
     let costPerResult: any;
     let metricName: string;
+    let count = filteredDashboard.length;
+    let amountSpend;
 
     filteredDashboard.forEach((item) => {
       const timePeriod =
         typeof item.time_period === 'string'
-          ? item.time_period // Jika sudah dalam format string YYYY-MM-DD
-          : new Date(item.time_period).toISOString().split('T')[0]; // Konversi jika bukan string
+          ? item.time_period
+          : new Date(item.time_period).toISOString().split('T')[0];
 
       if (!startDate || new Date(timePeriod) < new Date(startDate)) {
         startDate = timePeriod;
@@ -306,15 +367,48 @@ export class UserDashboardService {
       });
     });
 
+    if (query.start_date !== query.end_date) {
+      const dateRange = { since: query.start_date, until: query.end_date };
+      const path = `${idPath}/insights`;
+      console.log(path, '<<<');
+      const reachData = await this.getReach(path, dateRange);
+      aggregatedData.reach = Number(reachData[0].reach);
+    }
+
+    [
+      'cost_per_mile',
+      'cost_per_engagement',
+      'cost_per_view',
+      'cost_per_click',
+      'cost_per_lead'
+    ].forEach((key) => {
+      if (aggregatedData[key] !== undefined) {
+        aggregatedData[key] = aggregatedData[key] / count + budget;
+        if (metricName === 'reach' || metricName === 'impression') {
+          amountSpend =
+            (aggregatedData[metricName] * aggregatedData['cost_per_mile']) /
+            1000;
+        } else if (metricName === 'post_engagement') {
+          amountSpend =
+            aggregatedData[metricName] * aggregatedData['cost_per_engagement'];
+        } else if (metricName === 'video_views') {
+          amountSpend =
+            aggregatedData[metricName] * aggregatedData['cost_per_view'];
+        } else if (metricName === 'link_click') {
+          amountSpend =
+            aggregatedData[metricName] * aggregatedData['cost_per_click'];
+        } else if (metricName === 'lead') {
+          amountSpend =
+            aggregatedData[metricName] * aggregatedData['cost_per_lead'];
+        }
+      }
+    });
+
     delete aggregatedData.time_period;
     result.start_date = startDate;
     result.end_date = endDate;
 
-    const resultValue = costPerResult + costPerResult * aggregatedData.spend;
-
-    const amountSpend =
-      resultValue *
-      Array.from(metricsMap.values()).reduce((sum, value) => sum + value, 0);
+    // const amountSpend = aggregatedData[metricName] * aggregatedData.spend;
 
     const data_card = {
       ...aggregatedData,
@@ -522,5 +616,30 @@ export class UserDashboardService {
       console.error('Error generating report:', error);
       res.status(500).json({ message: 'Error generating report' });
     }
+  }
+
+  private async getReach(path, time_range) {
+    const fb = await this.cronService.initializeFB();
+    const response: any = await new Promise((resolve, reject) => {
+      fb.api(
+        path,
+        'GET',
+        {
+          fields: ['reach'],
+          time_range
+        },
+        (res) => {
+          if (!res || res.error) {
+            reject(res?.error);
+          } else {
+            resolve(res);
+          }
+        }
+      );
+    });
+    if (response.data) {
+      return response.data;
+    }
+    return null;
   }
 }

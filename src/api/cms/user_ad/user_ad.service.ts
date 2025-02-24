@@ -203,10 +203,18 @@ export class UserAdService {
 
   async findAllMetaAd(query) {
     let option: any = {
+      option: { ad_set_id: true },
       select: ['id', 'name']
     };
+
+    option['where'] = option['where'] || {};
+    console.log(query.adset_id);
+
+    if (query.adset_id) {
+      option['where']['ad_set_id'] = { id: query.adset_id };
+    }
+
     if (query.search) {
-      option['where'] = option['where'] || {};
       option['where']['name'] = ILike(`%${query.search}%`);
     }
     const result = await this.adRepository.find(option);

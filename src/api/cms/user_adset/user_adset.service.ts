@@ -197,12 +197,21 @@ export class UserAdsetService {
 
   async findAllMetaAdSet(query: any) {
     let option: any = {
+      relations: { campaign: true },
       select: ['id', 'name']
     };
+
+    option['where'] = option['where'] || {};
+
+    if (query.campaign_id) {
+      option['where']['campaign'] = { id: query.campaign_id };
+    }
+    console.log(query.campaign_id);
+
     if (query.search) {
-      option['where'] = option['where'] || {};
       option['where']['name'] = ILike(`%${query.search}%`);
     }
+
     const result = await this.adSetRepository.find(option);
     return {
       statusCode: 200,

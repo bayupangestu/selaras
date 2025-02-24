@@ -13,6 +13,11 @@ import { Campaign } from '@/entity/campaign.entity';
 import { AdSet } from '@/entity/ad-set.entity';
 import { Ad } from '@/entity/ad.entity';
 import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
+import { CronService } from '../cron/cron.service';
+import { SettingService } from '@/api/cms/setting/setting.service';
+import { AdAccount } from '@/entity/ad-account.entity';
+import { CustomAudience } from '@/entity/custom-audience.entity';
+import { Setting } from '@/entity/setting.entity';
 
 @Module({
   imports: [
@@ -26,11 +31,14 @@ import { InsightBreakdown } from '@/entity/insight-breakdown.entity';
       Campaign,
       AdSet,
       Ad,
-      InsightBreakdown
+      InsightBreakdown,
+      AdAccount,
+      CustomAudience,
+      Setting
     ]),
     AuthModule
   ],
   controllers: [UserDashboardController],
-  providers: [UserDashboardService]
+  providers: [UserDashboardService, CronService, SettingService]
 })
 export class UserDashboardModule {}
