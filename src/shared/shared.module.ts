@@ -9,6 +9,7 @@ import { AdSet } from '@/entity/ad-set.entity';
 import { Ad } from '@/entity/ad.entity';
 import { UserDashboard } from '@/entity/user-dashboard.entity';
 import { InsightListenerService } from './subscribers/insight.subscriber';
+import { DashboardListenerService } from './subscribers/dashboard.subscriber';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Campaign, AdSet, Ad, UserDashboard])],
@@ -22,13 +23,15 @@ import { InsightListenerService } from './subscribers/insight.subscriber';
     //     new InsightListenerService(dataSource),
     //   inject: [DataSource]
     // }
-    InsightListenerService
+    InsightListenerService,
+    DashboardListenerService
   ],
   exports: [
     MetaPlatformStrategy,
     GooglePlatformStrategy,
     PlatformStrategyFactory,
-    InsightListenerService
+    InsightListenerService,
+    DashboardListenerService
   ]
 })
 export class SharedModule {}

@@ -42,6 +42,13 @@ export class UserAdController {
     return await this.userAdService.findAllMetaAd(query);
   }
 
+  @Get('ad-budget')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(ClassSerializerInterceptor)
+  async getBudget(@Query() query: any) {
+    return await this.userAdService.findBudget(query);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)

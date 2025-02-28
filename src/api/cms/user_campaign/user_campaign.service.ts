@@ -77,7 +77,8 @@ export class UserCampaignService {
         select: ['id', 'name'],
         relations: {
           user_id: true,
-          platform_id: true
+          platform_id: true,
+          meta_campaign_id: true
         },
         // where: {},
         order: {
@@ -215,7 +216,7 @@ export class UserCampaignService {
 
   async findAllMetaCampaign(query) {
     let option: any = {
-      select: ['id', 'name']
+      select: ['id', 'name', 'campaign_meta_id']
     };
     if (query.search) {
       option['where'] = option['where'] || {};

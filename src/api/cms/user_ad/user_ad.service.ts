@@ -1,11 +1,13 @@
 import { Ad } from '@/entity/ad.entity';
+import { Insight } from '@/entity/insight.entity';
 import { UserAd } from '@/entity/user-ad.entity';
 import { UserAdsets } from '@/entity/user-adset.entity';
 import { User } from '@/entity/user.entity';
 import { PlatformStrategyFactory } from '@/shared/strategies';
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, ILike, Repository } from 'typeorm';
+import { Brackets, ILike, IsNull, Repository } from 'typeorm';
+import { DashboardAttributeService } from '../dashboard_attribute/dashboard_attribute.service';
 
 @Injectable()
 export class UserAdService {
@@ -18,6 +20,12 @@ export class UserAdService {
 
     @InjectRepository(Ad)
     private readonly adRepository: Repository<Ad>,
+
+    @Inject(DashboardAttributeService)
+    private readonly userDashboardService: DashboardAttributeService,
+
+    @InjectRepository(Insight)
+    private readonly insightRepository: Repository<Insight>,
 
     private readonly platformStrategyFactory: PlatformStrategyFactory
   ) {}
@@ -204,11 +212,10 @@ export class UserAdService {
   async findAllMetaAd(query) {
     let option: any = {
       option: { ad_set_id: true },
-      select: ['id', 'name']
+      select: ['id', 'name', 'ad_meta_id']
     };
 
     option['where'] = option['where'] || {};
-    console.log(query.adset_id);
 
     if (query.adset_id) {
       option['where']['ad_set_id'] = { id: query.adset_id };
@@ -222,5 +229,76 @@ export class UserAdService {
       statusCode: 200,
       data: result
     };
+  }
+
+  async findBudget(query) {
+    if (!query.ad_id) {
+      throw new HttpException('Meta ad id is required', 400);
+    }
+    const budgetData = await this.insightRepository.find({
+      relations: {
+        ad_id: true
+      },
+      where: {
+        ad_id: {
+          id: query.ad_id
+        }
+      }
+    });
+    if (budgetData.length === 0) {
+      return {
+        statusCode: 200,
+        message:
+          'The ad has not started yet or its insight data has not been synced'
+      };
+    }
+    const budget = {
+      cost_per_mile: 0,
+      cost_per_engagement: 0,
+      cost_per_view: 0,
+      cost_per_click: 0,
+      cost_per_lead: 0
+    };
+
+    budgetData.forEach((insightData) => {
+      budget.cost_per_mile =
+        insightData.spend &&
+        insightData.reach &&
+        parseFloat(String(insightData.reach)) > 0
+          ? Math.ceil(
+              (parseFloat(String(insightData.spend)) /
+                parseFloat(String(insightData.reach))) *
+                1000
+            )
+          : 0;
+      budget.cost_per_engagement =
+        insightData.spend && insightData.post_engagement > 0
+          ? Math.ceil(
+              parseFloat(String(insightData.spend)) /
+                insightData.post_engagement
+            )
+          : 0;
+
+      budget.cost_per_view =
+        insightData.spend && insightData.video_views > 0
+          ? Math.ceil(
+              parseFloat(String(insightData.spend)) / insightData.video_views
+            )
+          : 0;
+
+      budget.cost_per_click =
+        insightData.spend && insightData.link_click > 0
+          ? Math.ceil(
+              parseFloat(String(insightData.spend)) / insightData.link_click
+            )
+          : 0;
+
+      budget.cost_per_lead =
+        insightData.spend && insightData.lead > 0
+          ? Math.ceil(parseFloat(String(insightData.spend)) / insightData.lead)
+          : 0;
+    });
+
+    return budget;
   }
 }

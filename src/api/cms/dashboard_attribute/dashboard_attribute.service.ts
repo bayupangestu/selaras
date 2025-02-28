@@ -192,13 +192,16 @@ export class DashboardAttributeService {
         meta_campaign_id: true
       }
     );
-
+    let budget = 0;
+    if (budgetData?.budget) {
+      budget = budgetData.budget;
+    }
     return this.getDashboardData(
       query,
       'user_campaign_id',
       this.userCampaignRepository,
-      budgetData.budget,
-      budgetData.campaign_meta_id.campaign_meta_id
+      budget,
+      budgetData?.campaign_meta_id?.campaign_meta_id
     );
   }
 
@@ -209,9 +212,6 @@ export class DashboardAttributeService {
       'user_adset_id',
       { user_ads: true, meta_adset_id: true }
     );
-    console.log(query.user_adset_id);
-    console.log(budgetData, '<<<<<');
-
     return this.getDashboardData(
       query,
       'user_adset_id',
@@ -311,6 +311,8 @@ export class DashboardAttributeService {
     if (!query.filter) {
       throw new HttpException('Filter is required', 400);
     }
+    console.log(idField);
+    console.log(entityData.id);
 
     const queryBuilder = this.userDashboardRepository
       .createQueryBuilder('dashboard')
@@ -344,14 +346,17 @@ export class DashboardAttributeService {
         throw new HttpException('Invalid filter ID format', 400);
       }
     }
-
     const userDashboard = await queryBuilder.getMany();
 
     if (!userDashboard || userDashboard.length === 0) {
-      throw new HttpException(
-        `${idField.replace('_id', '')} dashboard not found`,
-        404
-      );
+      return {
+        [idField]: entityData.id,
+        name: entityData.name,
+        start_date: null,
+        end_date: null,
+        data_card: {},
+        metrics: []
+      };
     }
 
     let startDateFilter = query.start_date
@@ -460,10 +465,9 @@ export class DashboardAttributeService {
       });
     });
 
-    if (query.start_date !== query.end_date) {
+    if (query.start_date !== query.end_date && idPath) {
       const dateRange = { since: query.start_date, until: query.end_date };
       const path = `${idPath}/insights`;
-      console.log(path, '<<<');
       const reachData = await this.getReach(path, dateRange);
       aggregatedData.reach = Number(reachData[0].reach);
     }

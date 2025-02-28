@@ -67,7 +67,8 @@ export class UserAdsetService {
         select: ['id', 'name'],
         relations: {
           user_id: true,
-          user_campaign_id: true
+          user_campaign_id: true,
+          meta_adset_id: true
         },
         where: {
           user_campaign_id: {
@@ -196,9 +197,12 @@ export class UserAdsetService {
   }
 
   async findAllMetaAdSet(query: any) {
+    if (!query.campaign_id) {
+      throw new HttpException('Campaign id is required', 400);
+    }
     let option: any = {
       relations: { campaign: true },
-      select: ['id', 'name']
+      select: ['id', 'name', 'adset_meta_id']
     };
 
     option['where'] = option['where'] || {};
@@ -213,6 +217,8 @@ export class UserAdsetService {
     }
 
     const result = await this.adSetRepository.find(option);
+    console.log(result.length);
+
     return {
       statusCode: 200,
       data: result
