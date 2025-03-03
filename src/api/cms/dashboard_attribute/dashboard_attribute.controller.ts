@@ -46,7 +46,7 @@ export class DashboardAttributeController {
     return await this.dashboardAttributeService.getFilterValue(query.column);
   }
 
-  @Get('report')
+  @Post('report')
   async getCustomerReport(@Res() res: any, @Body() body: any) {
     return await this.dashboardAttributeService.getDataCardReportCsv(res, body);
   }

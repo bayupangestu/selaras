@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Inject,
+  Post,
   Query,
   Req,
   Res,
@@ -62,7 +63,7 @@ export class UserDashboardController {
     return await this.userDashboardService.getFilterValue(query.column);
   }
 
-  @Get('report')
+  @Post('report')
   async getCustomerReport(@Res() res: any, @Body() body: any) {
     return await this.userDashboardService.getDataCardReportCsv(res, body);
   }
