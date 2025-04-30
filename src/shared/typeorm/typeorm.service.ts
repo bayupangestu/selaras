@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { InsightListenerService } from '../subscribers/insight.subscriber';
-import { DashboardListenerService } from '../subscribers/dashboard.subscriber';
+import { UserCampaignSubscriber } from '../subscribers/dashboard.subscriber';
 @Injectable()
 export class TypeOrmConfigService implements TypeOrmOptionsFactory {
   public createTypeOrmOptions(): TypeOrmModuleOptions {
@@ -17,7 +17,7 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
       entities: ['dist/**/*.entity.{ts,js}'],
       migrations: ['dist/migrations/*.{ts,js}'],
       migrationsTableName: 'typeorm_migrations',
-      subscribers: [InsightListenerService, DashboardListenerService],
+      subscribers: [InsightListenerService, UserCampaignSubscriber],
       logger: 'file',
       synchronize: true
     };

@@ -405,6 +405,7 @@ export class UserDashboardService {
     });
 
     delete aggregatedData.time_period;
+    delete aggregatedData.spend;
     result.start_date = startDate;
     result.end_date = endDate;
 

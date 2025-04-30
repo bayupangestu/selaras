@@ -25,7 +25,7 @@ import { UserCampaign } from '../../entity/user-campaign.entity';
 import { UserProject } from '../../entity/user-project.entity';
 import { User } from '../../entity/user.entity';
 import { InsightBreakdown } from '../../entity/insight-breakdown.entity';
-import { DashboardListenerService } from '../subscribers/dashboard.subscriber';
+import { UserCampaignSubscriber } from '../subscribers/dashboard.subscriber';
 config();
 
 export const AppDataSource = new DataSource({
@@ -63,7 +63,7 @@ export const AppDataSource = new DataSource({
     User,
     InsightBreakdown
   ],
-  subscribers: [InsightListenerService, DashboardListenerService],
+  subscribers: [InsightListenerService, UserCampaignSubscriber],
   synchronize: true,
   logging: false
 });

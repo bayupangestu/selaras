@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
-@Controller('app/auth')
+@Controller('cms')
 export class AuthController {
   @Inject(AuthService)
   private readonly authService: AuthService;
